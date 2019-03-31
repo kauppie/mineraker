@@ -42,6 +42,7 @@ public:
     set_dimensions(width_, height_);
     init(mine_fill_percent, seed);
   }
+  SweepBoard() = delete;
   ~SweepBoard() noexcept {}
 
   // @brief Initializes the board with mine fill percent and a seed for random
@@ -90,6 +91,8 @@ public:
   }
 
 private:
+
+  // @brief Sets every tile to an empty one.
   void m_zero_out() {
     for (auto &tile : m_tiles)
       tile = std::make_pair(0, false);
@@ -166,11 +169,9 @@ private:
     }
     return 0xffffffffffffffff;
   }
-/*
-  // @todo Solve by matrix multiplication. Matrix makes a filter
-  // which removes the tiles not to add to the list.
-  std::vector<std::size_t> m_tile_neighbours(std::size_t idx) const {
-    std::vector<std::size_t> rv;
+
+  // @brief Does bounds checking.
+  std::vector<std::size_t> m_tile_neighbours_bnds(std::size_t idx) const {
     auto rv = m_tile_neighbour_idxs(idx);
     for (auto i = 0ull; i < rv.size(); ++i) {
       if (!m_b_inside_bounds(rv[i]))
@@ -180,8 +181,8 @@ private:
   }
 
   std::vector<std::unique_ptr<tile_type>>
-  m_tile_neighbours_ptr(std::size_t idx) const {
-    auto vec = m_tile_neighbours(idx);
+  m_tile_neighbours_bnds_ptr(std::size_t idx) const {
+    auto vec = m_tile_neighbours_bnds(idx);
     std::vector<std::unique_ptr<tile_type>> rv(vec.size());
     for (auto i = 0ull; i < vec.size(); ++i) {
       rv[i] = std::make_unique<tile_type>(m_tiles[vec[i]]);
@@ -189,19 +190,11 @@ private:
     return rv;
   }
 
-  std::vector<std::reference_wrapper<tile_type>>
-  m_tile_neighbours_ref(std::size_t idx) const {
-    auto vec = m_tile_neighbours(idx);
-    std::vector<std::reference_wrapper<tile_type>> rv;
-    for (auto i : vec)
-      rv.emplace_back(m_tiles[i]);
-    return rv;
-  }
-
   // @brief Returns a vector containing index's neighbours. Doesn't do bound
-  // checking; check m_tile_neighbours for that.
-  std::vector<int64_t> m_tile_neighbour_idxs(std::size_t idx) const {
-    std::vector<int64_t> rv(static_cast<std::vector<int64_t>::size_type>(8));
+  // checking; check m_tile_neighbours_bnds for that.
+  std::vector<std::size_t> m_tile_neighbour_idxs(std::size_t idx) const {
+    std::vector<std::size_t> rv(
+        static_cast<std::vector<std::size_t>::size_type>(8));
     rv[0] = idx - m_width - 1;
     rv[1] = idx - m_width;
     rv[2] = idx - m_width + 1;
@@ -222,7 +215,7 @@ private:
       if (tile.second == false) {
         tile.second = true;
         if (tile.first == 0) {
-          auto neighb = m_tile_neighbours(idx);
+          auto neighb = m_tile_neighbours_bnds(idx);
           for (auto n : neighb)
             m_open_domino_effect(n);
           return neighb;
@@ -236,16 +229,17 @@ private:
   // NOTE: This is a worker function for open_domino_effect so that iterative
   // calling is possible. Also possible through lambda inside that function ->
   // investigate if single use.
-  bool m_open_empty_neighbours(std::size_t idx, std::vector<std::size_t>& neigbrs) {
-    auto vec = m_tile_neighbours_ref(idx);
+  bool m_open_empty_neighbours(std::size_t idx,
+                               std::vector<std::size_t> &neigbrs) {
+    auto vec = m_tile_neighbours_bnds_ptr(idx);
     if (vec.size() == 0)
       return false;
     for (auto i = 0ull; i < vec.size(); ++i)
-      if (vec[i].get().second == false)
-        vec[i].get().second = true;
+      if (vec[i].get()->second == false)
+        vec[i].get()->second = true;
     return true;
   }
-*/
+
   // Returns true if the board is solvable without guessing; false otherwise.
   // TODO: implement
   bool m_b_solvable() const { return false; }
