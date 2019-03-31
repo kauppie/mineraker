@@ -91,7 +91,6 @@ public:
   }
 
 private:
-
   // @brief Sets every tile to an empty one.
   void m_zero_out() {
     for (auto &tile : m_tiles)
@@ -170,7 +169,7 @@ private:
     return 0xffffffffffffffff;
   }
 
-  // @brief Does bounds checking.
+  // @brief Takes m_tile_neighbour_idxs as input and does bound checking for it.
   std::vector<std::size_t> m_tile_neighbours_bnds(std::size_t idx) const {
     auto rv = m_tile_neighbour_idxs(idx);
     for (auto i = 0ull; i < rv.size(); ++i) {
@@ -180,6 +179,7 @@ private:
     return rv;
   }
 
+  // @brief Returns pointers to tile's neighbours. Each pointer is valid.
   std::vector<std::unique_ptr<tile_type>>
   m_tile_neighbours_bnds_ptr(std::size_t idx) const {
     auto vec = m_tile_neighbours_bnds(idx);
@@ -225,7 +225,6 @@ private:
     return std::vector<std::size_t>{};
   }
 
-  // @todo Implement
   // NOTE: This is a worker function for open_domino_effect so that iterative
   // calling is possible. Also possible through lambda inside that function ->
   // investigate if single use.
