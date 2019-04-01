@@ -182,11 +182,8 @@ private:
 
   std::size_t m_neighbour_count(std::size_t idx) const {
     std::size_t ret = 0;
-    bool w_edge = false, h_edge;
-    if (idx % m_width == 0 || idx % m_width == m_width - 1)
-      w_edge = true;
-    if (idx < m_width || idx >= height() * (m_width - 1))
-      h_edge = true;
+    bool w_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
+         h_edge = idx < m_width || idx >= height() * (m_width - 1);
     if (w_edge) {
       if (h_edge)
         ret = 3;
