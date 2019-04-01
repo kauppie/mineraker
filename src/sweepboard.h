@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <random>
+#include <stack>
 #include <utility>
 #include <vector>
 
@@ -36,6 +37,9 @@ private:
   // Variable for storing the board width.
   std::size_t m_width;
 
+  // Adds control for the Control class. Might not be final.
+  friend class SweepBoardController;
+
 public:
   /*
    * @brief Default constructor with board defining parameters.
@@ -63,6 +67,7 @@ public:
   void set_dimensions(std::size_t width_, std::size_t height_) {
     m_width = width_;
     m_tiles.resize(m_width * height_);
+    m_tiles.shrink_to_fit();
   }
 
   // @brief Sets tile as a mine or not in given position/index.
@@ -194,7 +199,8 @@ private:
     return ret;
   }
 
-  // @brief Takes m_tile_neighbour_idxs as input and does bound checking for it.
+  // @brief Takes %m_tile_neighbour_idxs as input and does bound checking for
+  // it.
   std::vector<std::size_t> m_tile_neighbours_bnds(std::size_t idx) const {
     auto rv = m_tile_neighbour_idxs(idx);
     for (auto i = 0ull; i < rv.size(); ++i)
@@ -203,8 +209,8 @@ private:
     return rv;
   }
 
-  // @brief Takes a vector of neighbour indexes and does bound checking for them.
-  // Returns said vector as reference.
+  // @brief Takes a vector of neighbour indexes and does bound checking for
+  // them. Returns said vector as reference.
   std::vector<std::size_t> &
   m_tile_neighbours_bnds(std::vector<std::size_t> &neighbr_idxs) {
     for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
@@ -224,7 +230,8 @@ private:
   }
 
   // @brief Returns a vector containing index's neighbours. Doesn't do bound
-  // checking; check m_tile_neighbours_bnds for that.
+  // checking; check %m_tile_neighbours_bnds for that.
+  // @note Returns as a vector so that the output is directly editable in size.
   std::vector<std::size_t> m_tile_neighbour_idxs(std::size_t idx) const {
     std::vector<std::size_t> rv(
         static_cast<std::vector<std::size_t>::size_type>(TILE_NEIGHBOUR_COUNT));
@@ -258,26 +265,46 @@ private:
     return std::vector<std::size_t>{};
   }
 
-  // NOTE: This is a worker function for m_open_domino_effect so that iterative
-  // calling is possible. Also possible through lambda inside that function ->
-  // investigate if single use.
-  bool m_open_empty_neighbours(std::size_t idx) {
-    auto vec = m_tile_neighbours_bnds_ptr(idx);
-    if (vec.size() == 0)
-      return false;
-    for (auto i = 0ull; i < vec.size(); ++i)
-      if (vec[i].get()->second == false)
-        vec[i].get()->second = true;
-    return true;
+  // @brief Returns tiles which open from flood fill effect including tile
+  // represented by %idx.
+  void m_flood_open(std::size_t idx) {
+    // @todo Check if
+    // const auto& neighbrs = m_tile_neighbours_bnds_ptr(idx);
+    // works any faster with this and other functions.
+    // @note %unique_ptr::get() is const.
+    if (m_tiles[idx].first == TILE_EMPTY) {
+
+      auto neighbrs = m_tile_neighbours_bnds_ptr(idx);
+      std::stack<tile_type> st_neigh;
+
+      for (auto &n : neighbrs) {
+      }
+    }
+    m_tiles[idx].second = true;
   }
 
-  bool
-  m_open_empty_neighbours(std::vector<std::unique_ptr<tile_type>> &neigbrs) {
+  // NOTE: This is a worker function for %m_open_domino_effect so that iterative
+  // calling is possible. Also possible through lambda inside that function ->
+  // investigate if single use. Neighbours are bound checked but %idx is not.
+  bool m_open_area(std::size_t idx) {
+    bool changes = false;
+    if (m_tiles[idx].second == false) {
+      m_tiles[idx].second = true;
+      changes = true;
+      if (m_tiles[idx].first == TILE_EMPTY) {
+        auto vec = m_tile_neighbours_bnds_ptr(idx);
+        for (auto &tile : vec)
+          tile.get()->second = true;
+      }
+    }
+    return changes;
+  }
+
+  bool m_open_neighbours(std::vector<std::unique_ptr<tile_type>> &neigbrs) {
     if (neigbrs.size() == 0)
       return false;
-    for (auto i = 0ull; i < neigbrs.size(); ++i)
-      if (neigbrs[i].get()->second == false)
-        neigbrs[i].get()->second = true;
+    for (auto &tile : neigbrs)
+      tile.get()->second = true;
     return true;
   }
 
