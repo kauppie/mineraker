@@ -23,6 +23,11 @@ private:
   using block_type = unsigned char;
   using tile_type = std::pair<block_type, bool>;
   using vector_type = std::vector<tile_type>;
+  using const_tile_int = const block_type;
+
+  static const_tile_int TILE_NEIGHBOUR_COUNT = 8;
+  static const_tile_int TILE_EMPTY = 0;
+  static const_tile_int TILE_MINE = 9;
 
   // Default container for the board tiles.
   vector_type m_tiles;
@@ -64,14 +69,14 @@ public:
   // Does bound checking and ignores out-of-bounds conditions.
   void set_mines(std::size_t pos, bool b_mine = true) {
     if (pos < tile_count())
-      m_tiles[pos].first = (b_mine ? 9 : 0);
+      m_tiles[pos].first = (b_mine ? TILE_MINE : TILE_EMPTY);
   }
 
   // @brief Returns the amount mines on the board.
   std::size_t mine_count() const {
     auto count = 0ull;
     for (auto &tile : m_tiles)
-      if (tile.first == 9)
+      if (tile.first == TILE_MINE)
         ++count;
     return count;
   }
@@ -105,15 +110,15 @@ private:
       return;
     else if (percent >= 1.0) {
       for (auto &tile : m_tiles)
-        tile.first = 9;
+        tile.first = TILE_MINE;
       return;
     }
     auto mine_count = static_cast<std::size_t>(percent * tile_count());
     for (auto i = 0ull; i < mine_count; ++i) {
       // There's no risk for divide by 0 error.
       auto &block = m_tiles[rand_engine() % tile_count()].first;
-      if (block != 9)
-        block = 9;
+      if (block != TILE_MINE)
+        block = TILE_MINE;
       else
         --i;
     }
@@ -149,7 +154,8 @@ private:
   void m_promote_tile(int64_t index) {
     if (m_b_inside_bounds(index)) {
       auto &ref = m_tiles[static_cast<std::size_t>(index)].first;
-      ref += (ref < 9 ? 1 : 0);
+      // Adds tile's value.
+      ref += (ref < TILE_MINE ? 1 : 0);
     }
   }
 
@@ -163,20 +169,48 @@ private:
   // (0xffffffffffffffff).
   std::size_t m_next_mine(std::size_t st_idx = 0) const {
     for (; st_idx < tile_count(); ++st_idx) {
-      if (m_tiles[st_idx].first == 9)
+      if (m_tiles[st_idx].first == TILE_MINE)
         return st_idx;
     }
     return 0xffffffffffffffff;
   }
 
+  std::size_t m_neighbour_count(std::size_t idx) const {
+    std::size_t ret = 0;
+    bool w_edge = false, h_edge;
+    if (idx % m_width == 0 || idx % m_width == m_width - 1)
+      w_edge = true;
+    if (idx < m_width || idx >= height() * (m_width - 1))
+      h_edge = true;
+    if (w_edge) {
+      if (h_edge)
+        ret = 3;
+      else
+        ret = 5;
+    } else if (h_edge)
+      ret = 5;
+    else
+      ret = 8;
+    return ret;
+  }
+
   // @brief Takes m_tile_neighbour_idxs as input and does bound checking for it.
   std::vector<std::size_t> m_tile_neighbours_bnds(std::size_t idx) const {
     auto rv = m_tile_neighbour_idxs(idx);
-    for (auto i = 0ull; i < rv.size(); ++i) {
+    for (auto i = 0ull; i < rv.size(); ++i)
       if (!m_b_inside_bounds(rv[i]))
         rv.erase(rv.begin() + i);
-    }
     return rv;
+  }
+
+  // @brief Takes a vector of neighbour indexes and does bound checking for them.
+  // Returns said vector as reference.
+  std::vector<std::size_t> &
+  m_tile_neighbours_bnds(std::vector<std::size_t> &neighbr_idxs) {
+    for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
+      if (!m_b_inside_bounds(neighbr_idxs[i]))
+        neighbr_idxs.erase(neighbr_idxs.begin() + i);
+    return neighbr_idxs;
   }
 
   // @brief Returns pointers to tile's neighbours. Each pointer is valid.
@@ -184,9 +218,8 @@ private:
   m_tile_neighbours_bnds_ptr(std::size_t idx) const {
     auto vec = m_tile_neighbours_bnds(idx);
     std::vector<std::unique_ptr<tile_type>> rv(vec.size());
-    for (auto i = 0ull; i < vec.size(); ++i) {
+    for (auto i = 0ull; i < vec.size(); ++i)
       rv[i] = std::make_unique<tile_type>(m_tiles[vec[i]]);
-    }
     return rv;
   }
 
@@ -194,7 +227,7 @@ private:
   // checking; check m_tile_neighbours_bnds for that.
   std::vector<std::size_t> m_tile_neighbour_idxs(std::size_t idx) const {
     std::vector<std::size_t> rv(
-        static_cast<std::vector<std::size_t>::size_type>(8));
+        static_cast<std::vector<std::size_t>::size_type>(TILE_NEIGHBOUR_COUNT));
     rv[0] = idx - m_width - 1;
     rv[1] = idx - m_width;
     rv[2] = idx - m_width + 1;
@@ -214,7 +247,7 @@ private:
       auto &tile = m_tiles[idx];
       if (tile.second == false) {
         tile.second = true;
-        if (tile.first == 0) {
+        if (tile.first == TILE_EMPTY) {
           auto neighb = m_tile_neighbours_bnds(idx);
           for (auto n : neighb)
             m_open_domino_effect(n);
@@ -225,17 +258,26 @@ private:
     return std::vector<std::size_t>{};
   }
 
-  // NOTE: This is a worker function for open_domino_effect so that iterative
+  // NOTE: This is a worker function for m_open_domino_effect so that iterative
   // calling is possible. Also possible through lambda inside that function ->
   // investigate if single use.
-  bool m_open_empty_neighbours(std::size_t idx,
-                               std::vector<std::size_t> &neigbrs) {
+  bool m_open_empty_neighbours(std::size_t idx) {
     auto vec = m_tile_neighbours_bnds_ptr(idx);
     if (vec.size() == 0)
       return false;
     for (auto i = 0ull; i < vec.size(); ++i)
       if (vec[i].get()->second == false)
         vec[i].get()->second = true;
+    return true;
+  }
+
+  bool
+  m_open_empty_neighbours(std::vector<std::unique_ptr<tile_type>> &neigbrs) {
+    if (neigbrs.size() == 0)
+      return false;
+    for (auto i = 0ull; i < neigbrs.size(); ++i)
+      if (neigbrs[i].get()->second == false)
+        neigbrs[i].get()->second = true;
     return true;
   }
 
