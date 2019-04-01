@@ -180,7 +180,8 @@ private:
     return 0xffffffffffffffff;
   }
 
-  // @brief Returns the amount of neighbours tile has inside bounds of the board.
+  // @brief Returns the amount of neighbours tile has inside bounds of the
+  // board.
   std::size_t m_neighbour_count(std::size_t idx) const {
     std::size_t ret = 0;
     bool w_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
@@ -267,6 +268,19 @@ private:
     // const auto& neighbrs = m_tile_neighbours_bnds_ptr(idx);
     // works any faster with this and other functions.
     // @note %unique_ptr::get() is const.
+    if (m_b_inside_bounds(idx)) {
+      std::stack<tile_type> st_neigh;
+      bool change = true;
+      while (change) {
+        m_tiles[idx].second = true;
+        auto neighbrs = m_tile_neighbours_bnds(idx);
+        change = m_open_neighbours(neighbrs[idx]);
+        for (auto i = 0ull; change; ++i) {
+          if (m_tiles[idx].first == TILE_EMPTY)
+            st_neigh.emplace(neighbrs[i]);
+        }
+      }
+    }
     if (m_tiles[idx].first == TILE_EMPTY) {
 
       auto neighbrs = m_tile_neighbours_bnds_ptr(idx);
@@ -295,10 +309,19 @@ private:
     return changes;
   }
 
-  bool m_open_neighbours(std::vector<std::unique_ptr<tile_type>> &neigbrs) {
-    if (neigbrs.size() == 0)
+  bool m_open_neighbours(std::size_t idx) {
+    auto neighbrs = m_tile_neighbours_bnds(idx);
+    if (neighbrs.size() == 0)
       return false;
-    for (auto &tile : neigbrs)
+    for (auto i : neighbrs)
+      m_tiles[i].second = true;
+    return true;
+  }
+
+  bool m_open_neighbours(std::vector<std::unique_ptr<tile_type>> &neighbrs) {
+    if (neighbrs.size() == 0)
+      return false;
+    for (auto &tile : neighbrs)
       tile.get()->second = true;
     return true;
   }
