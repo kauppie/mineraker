@@ -180,16 +180,14 @@ private:
     return 0xffffffffffffffff;
   }
 
+  // @brief Returns the amount of neighbours tile has inside bounds of the board.
   std::size_t m_neighbour_count(std::size_t idx) const {
     std::size_t ret = 0;
     bool w_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
          h_edge = idx < m_width || idx >= height() * (m_width - 1);
-    if (w_edge) {
-      if (h_edge)
-        ret = 3;
-      else
-        ret = 5;
-    } else if (h_edge)
+    if (w_edge && h_edge)
+      ret = 3;
+    else if (w_edge || h_edge)
       ret = 5;
     else
       ret = 8;
