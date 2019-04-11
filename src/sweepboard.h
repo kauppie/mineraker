@@ -8,6 +8,10 @@
 #include <utility>
 #include <vector>
 
+#include "board_tile.h"
+
+namespace msgn {
+
 /*
  * @brief Class defines a board with tiles which type of empty, number or a
  * mine.
@@ -21,19 +25,15 @@
  */
 class SweepBoard {
 private:
-  using block_type = unsigned char;
-  using tile_type = std::pair<block_type, bool>;
+  using tile_type = BoardTile;
   using vector_type = std::vector<tile_type>;
-  using const_tile_int = const block_type;
 
-  static const_tile_int TILE_NEIGHBOUR_COUNT = 8;
-  static const_tile_int TILE_EMPTY = 0;
-  static const_tile_int TILE_MINE = 9;
+  static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
   // Default container for the board tiles.
   vector_type m_tiles;
   // Random number generator for randomizing tile values.
-  std::mt19937_64 rand_engine;
+  std::mt19937_64 m_rand_engine;
   // Variable for storing the board width.
   std::size_t m_width;
 
@@ -57,7 +57,7 @@ public:
   // @brief Initializes the board with mine fill percent and a seed for random
   // number generator. Also sets tile values as mines, numbers or emptys.
   void init(double mine_fill_percent, uint32_t seed) {
-    rand_engine.seed(seed);
+    m_rand_engine.seed(seed);
     m_zero_out();
     m_set_mines(mine_fill_percent);
     m_set_numbered_tiles();
@@ -74,14 +74,14 @@ public:
   // Does bound checking and ignores out-of-bounds conditions.
   void set_mines(std::size_t pos, bool b_mine = true) {
     if (pos < tile_count())
-      m_tiles[pos].first = (b_mine ? TILE_MINE : TILE_EMPTY);
+      m_tiles[pos].tile_value = (b_mine ? BoardTile::TILE_MINE : BoardTile::TILE_EMPTY);
   }
 
   // @brief Returns the amount mines on the board.
   std::size_t mine_count() const {
     auto count = 0ull;
     for (auto &tile : m_tiles)
-      if (tile.first == TILE_MINE)
+      if (tile.is_mine())
         ++count;
     return count;
   }
@@ -104,7 +104,7 @@ private:
   // @brief Sets every tile to an empty one.
   void m_zero_out() {
     for (auto &tile : m_tiles)
-      tile = std::make_pair(0, false);
+      tile.reset();
   }
 
   // Calculates mine count from given percentage and distributes them evenly.
@@ -115,17 +115,15 @@ private:
       return;
     else if (percent >= 1.0) {
       for (auto &tile : m_tiles)
-        tile.first = TILE_MINE;
+        tile.set_mine();
       return;
     }
     auto mine_count = static_cast<std::size_t>(percent * tile_count());
     for (auto i = 0ull; i < mine_count; ++i) {
-      // There's no risk for divide by 0 error.
-      auto &block = m_tiles[rand_engine() % tile_count()].first;
-      if (block != TILE_MINE)
-        block = TILE_MINE;
-      else
+      auto &tile = m_tiles[m_rand_engine() % tile_count()];
+      if (tile.is_mine())
         --i;
+      tile.set_mine();
     }
   }
 
@@ -148,19 +146,13 @@ private:
     }
   }
 
-  // Sets single tile at given index to given type.
-  void m_set_index_tile(int64_t index, block_type b_type) {
-    if (m_b_inside_bounds(index))
-      m_tiles[static_cast<std::size_t>(index)].first = b_type;
-  }
-
   // Adds 1 to tile's value unless it's a mine. Empty tile changes to 1.
   // Does bound checking.
   void m_promote_tile(int64_t index) {
     if (m_b_inside_bounds(index)) {
-      auto &ref = m_tiles[static_cast<std::size_t>(index)].first;
+      auto &ref = m_tiles[static_cast<std::size_t>(index)].tile_value;
       // Adds tile's value.
-      ref += (ref < TILE_MINE ? 1 : 0);
+      ref += (ref < BoardTile::TILE_MINE ? 1 : 0);
     }
   }
 
@@ -174,7 +166,7 @@ private:
   // (0xffffffffffffffff).
   std::size_t m_next_mine(std::size_t st_idx = 0) const {
     for (; st_idx < tile_count(); ++st_idx) {
-      if (m_tiles[st_idx].first == TILE_MINE)
+      if (m_tiles[st_idx].is_mine())
         return st_idx;
     }
     return 0xffffffffffffffff;
@@ -183,16 +175,13 @@ private:
   // @brief Returns the amount of neighbours tile has inside bounds of the
   // board.
   std::size_t m_neighbour_count(std::size_t idx) const {
-    std::size_t ret = 0;
     bool w_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
          h_edge = idx < m_width || idx >= height() * (m_width - 1);
     if (w_edge && h_edge)
-      ret = 3;
+      return 3;
     else if (w_edge || h_edge)
-      ret = 5;
-    else
-      ret = 8;
-    return ret;
+      return 5;
+    return 8;
   }
 
   // @brief Takes %m_tile_neighbour_idxs as input and does bound checking for
@@ -245,12 +234,13 @@ private:
   // @todo Change name to open_tile_neighbours?
   // @bug might cause stack overflow (recursive function call).
   // + all of these stack calls return vector? that's heavy.
-  std::vector<std::size_t> m_open_domino_effect(std::size_t idx) {
+  [[depracated("m_flood_open replaces this.")]] std::vector<std::size_t>
+  m_open_domino_effect(std::size_t idx) {
     if (m_b_inside_bounds(idx)) {
       auto &tile = m_tiles[idx];
-      if (tile.second == false) {
-        tile.second = true;
-        if (tile.first == TILE_EMPTY) {
+      if (!tile.b_open) {
+        tile.set_open();
+        if (tile.is_mine()) {
           auto neighb = m_tile_neighbours_bnds(idx);
           for (auto n : neighb)
             m_open_domino_effect(n);
@@ -264,32 +254,24 @@ private:
   // @brief Returns tiles which open from flood fill effect including tile
   // represented by %idx.
   void m_flood_open(std::size_t idx) {
-    // @todo Check if
-    // const auto& neighbrs = m_tile_neighbours_bnds_ptr(idx);
-    // works any faster with this and other functions.
-    // @note %unique_ptr::get() is const.
     if (m_b_inside_bounds(idx)) {
-      std::stack<tile_type> st_neigh;
-      bool change = true;
-      while (change) {
-        m_tiles[idx].second = true;
-        auto neighbrs = m_tile_neighbours_bnds(idx);
-        change = m_open_neighbours(neighbrs[idx]);
-        for (auto i = 0ull; change; ++i) {
-          if (m_tiles[idx].first == TILE_EMPTY)
-            st_neigh.emplace(neighbrs[i]);
+      m_tiles[idx].set_open();
+      if (m_tiles[idx].is_empty()) {
+        std::vector<bool> checked_tiles(tile_count(), false);
+        std::stack<std::size_t> st_open;
+        st_open.emplace(idx);
+        while (!st_open.empty()) {
+          idx = st_open.top();
+          st_open.pop();
+          auto neighbrs = m_tile_neighbour_idxs(idx);
+          m_open_neighbours(neighbrs);
+          checked_tiles[idx] = true;
+          for (auto n : neighbrs)
+            if (m_tiles[n].is_empty() && !checked_tiles[n])
+              st_open.emplace(n);
         }
       }
     }
-    if (m_tiles[idx].first == TILE_EMPTY) {
-
-      auto neighbrs = m_tile_neighbours_bnds_ptr(idx);
-      std::stack<tile_type> st_neigh;
-
-      for (auto &n : neighbrs) {
-      }
-    }
-    m_tiles[idx].second = true;
   }
 
   // NOTE: This is a worker function for %m_open_domino_effect so that iterative
@@ -297,13 +279,13 @@ private:
   // investigate if single use. Neighbours are bound checked but %idx is not.
   bool m_open_area(std::size_t idx) {
     bool changes = false;
-    if (m_tiles[idx].second == false) {
-      m_tiles[idx].second = true;
+    if (!m_tiles[idx].b_open) {
+      m_tiles[idx].set_open();
       changes = true;
-      if (m_tiles[idx].first == TILE_EMPTY) {
+      if (m_tiles[idx].is_empty()) {
         auto vec = m_tile_neighbours_bnds_ptr(idx);
         for (auto &tile : vec)
-          tile.get()->second = true;
+          tile.get()->set_open();
       }
     }
     return changes;
@@ -314,19 +296,30 @@ private:
     if (neighbrs.size() == 0)
       return false;
     for (auto i : neighbrs)
-      m_tiles[i].second = true;
+      m_tiles[i].set_open();
     return true;
   }
 
-  bool m_open_neighbours(std::vector<std::unique_ptr<tile_type>> &neighbrs) {
+  bool m_open_neighbours(
+      /* const */ std::vector<std::unique_ptr<tile_type>> &neighbrs) {
     if (neighbrs.size() == 0)
       return false;
     for (auto &tile : neighbrs)
-      tile.get()->second = true;
+      tile.get()->set_open();
+    return true;
+  }
+
+  bool m_open_neighbours(const std::vector<std::size_t> &neighbrs) {
+    if (neighbrs.size() == 0)
+      return false;
+    for (auto i : neighbrs)
+      m_tiles[i].set_open();
     return true;
   }
 
   // Returns true if the board is solvable without guessing; false otherwise.
   // TODO: implement
   bool m_b_solvable() const { return false; }
-}; // end class SweepBoard
+}; // class SweepBoard
+
+} // namespace msgn

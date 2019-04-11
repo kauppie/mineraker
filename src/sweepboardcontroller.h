@@ -1,4 +1,7 @@
 #include "sweepboard.h"
+#include "board_tile.h"
+
+namespace msgn {
 
 class SweepBoardController {
 private:
@@ -11,8 +14,9 @@ public:
       : board(width_, height_, mine_fill_percent, seed) {}
   ~SweepBoardController() {}
 
-  void foo(){
-  }
+  void foo() {}
 
 private:
-}; // end class SweepBoardController
+}; // class SweepBoardController
+
+} // namespace msgn
