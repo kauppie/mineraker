@@ -17,6 +17,7 @@ public:
                        TILE_4 = 4, TILE_5 = 5, TILE_6 = 6, TILE_7 = 7,
                        TILE_8 = 8, TILE_MINE = 9;
 
+  BoardTile() { reset(); }
   BoardTile(unsigned char tile_value_) : tile_value(tile_value_) {}
   BoardTile(unsigned char tile_value_, bool is_flagged, bool is_open)
       : tile_value(tile_value_), b_flagged(is_flagged), b_open(is_open) {}

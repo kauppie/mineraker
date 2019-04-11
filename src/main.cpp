@@ -9,7 +9,7 @@
 
 int main() {
   auto t1 = std::chrono::high_resolution_clock::now();
-  SweepBoard sb(16, 16, .4);
+  msgn::SweepBoard sb(16, 16, .4);
   auto t2 = std::chrono::high_resolution_clock::now();
 
   std::cout
