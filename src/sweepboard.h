@@ -65,9 +65,9 @@ public:
   }
 
   // @brief Sets board dimensions and resizes the container.
-  void set_dimensions(std::size_t width_, std::size_t height_) {
-    m_width = width_;
-    m_tiles.resize(m_width * height_);
+  void set_dimensions(std::size_t width, std::size_t height) {
+    m_width = width;
+    m_tiles.resize(m_width * height);
     m_tiles.shrink_to_fit();
   }
 
@@ -204,7 +204,7 @@ public:
   // @brief Takes a vector of neighbour indexes and does bound checking for
   // them. Returns said vector as reference.
   std::vector<std::size_t> &
-  m_tile_neighbours_bnds(std::vector<std::size_t> &neighbr_idxs) {
+  m_tile_neighbours_bnds(std::vector<std::size_t> &neighbr_idxs) const {
     for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
       if (!m_b_inside_bounds(neighbr_idxs[i]))
         neighbr_idxs.erase(neighbr_idxs.begin() + i);
@@ -276,7 +276,7 @@ public:
     m_open_neighbours(m_empty_tiles_empty_area(idx));
   }
 
-  std::vector<std::size_t> m_empty_tiles_empty_area(std::size_t idx) {
+  std::vector<std::size_t> m_empty_tiles_empty_area(std::size_t idx) const {
     if (!m_b_inside_bounds(idx) || !m_tiles[idx].is_empty())
       return std::vector<std::size_t>();
 
@@ -297,23 +297,6 @@ public:
     return rv;
   }
 
-  // NOTE: This is a worker function for %m_open_domino_effect so that iterative
-  // calling is possible. Also possible through lambda inside that function ->
-  // investigate if single use. Neighbours are bound checked but %idx is not.
-  bool m_open_area(std::size_t idx) {
-    bool changes = false;
-    if (!m_tiles[idx].b_open) {
-      m_tiles[idx].set_open();
-      changes = true;
-      if (m_tiles[idx].is_empty()) {
-        auto vec = m_tile_neighbours_bnds_ptr(idx);
-        for (auto &tile : vec)
-          tile.get()->set_open();
-      }
-    }
-    return changes;
-  }
-
   bool m_open_neighbours(std::size_t idx) {
     auto neighbrs = m_tile_neighbours_bnds(idx);
     if (neighbrs.size() == 0ull)
@@ -323,8 +306,8 @@ public:
     return true;
   }
 
-  bool m_open_neighbours(
-      /* const */ std::vector<std::unique_ptr<tile_type>> &neighbrs) {
+  bool
+  m_open_neighbours(const std::vector<std::unique_ptr<tile_type>> &neighbrs) {
     if (neighbrs.size() == 0ull)
       return false;
     for (auto &tile : neighbrs)
