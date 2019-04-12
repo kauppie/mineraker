@@ -47,9 +47,9 @@ public:
    * random number generator are defined.
    */
   SweepBoard(
-      std::size_t width_, std::size_t height_, double mine_fill,
+      std::size_t width, std::size_t height, double mine_fill,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed) {
-    set_dimensions(width_, height_);
+    set_dimensions(width, height);
     init(mine_fill, seed);
   }
   SweepBoard() = delete;
@@ -103,6 +103,7 @@ public:
   }
 
 private:
+public:
   // @brief Sets every tile to an empty one.
   void m_zero_out() {
     for (auto &tile : m_tiles)
@@ -132,32 +133,32 @@ private:
   // Sets tiles without mines to have numbers representing how many mines are
   // nearby.
   void m_set_numbered_tiles() {
-    for (auto i = m_next_mine(); i < tile_count(); i = m_next_mine(i + 1)) {
+    for (auto i = m_next_mine(); i < tile_count(); i = m_next_mine(i + 1ull)) {
       m_promote_tile(i - m_width);
       m_promote_tile(i + m_width);
 
       // If index isn't against left side wall.
       if (i % m_width != 0) {
-        m_promote_tile(i - m_width - 1);
-        m_promote_tile(i - 1);
-        m_promote_tile(i + m_width - 1);
+        m_promote_tile(i - m_width - 1ull);
+        m_promote_tile(i - 1ull);
+        m_promote_tile(i + m_width - 1ull);
       }
       // If index isn't against right side wall.
-      else if (i % m_width != m_width - 1) {
-        m_promote_tile(i - m_width + 1);
-        m_promote_tile(i + 1);
-        m_promote_tile(i + m_width + 1);
+      else if (i % m_width != m_width - 1ull) {
+        m_promote_tile(i - m_width + 1ull);
+        m_promote_tile(i + 1ull);
+        m_promote_tile(i + m_width + 1ull);
       }
     }
   }
 
   // Adds 1 to tile's value unless it's a mine. Empty tile changes to 1.
   // Does bound checking.
-  void m_promote_tile(std::size_t index) {
-    if (m_b_inside_bounds(index)) {
-      auto &ref = m_tiles[static_cast<std::size_t>(index)].tile_value;
+  void m_promote_tile(std::size_t idx) {
+    if (m_b_inside_bounds(idx)) {
+      auto &tile = m_tiles[idx];
       // Adds tile's value.
-      ref += (ref < BoardTile::TILE_MINE ? 1 : 0);
+      tile.tile_value += (tile.tile_value < BoardTile::TILE_8 ? 1 : 0);
     }
   }
 
@@ -169,7 +170,7 @@ private:
   // Returns next tile index with the type of mine starting from optional index.
   // If mine not found until the end of the array, returns ULLONG_MAX
   // (0xffffffffffffffff).
-  std::size_t m_next_mine(std::size_t st_idx = 0) const {
+  std::size_t m_next_mine(std::size_t st_idx = 0ull) const {
     for (; st_idx < tile_count(); ++st_idx) {
       if (m_tiles[st_idx].is_mine())
         return st_idx;
@@ -180,13 +181,14 @@ private:
   // @brief Returns the amount of neighbours tile has inside bounds of the
   // board.
   std::size_t m_neighbour_count(std::size_t idx) const {
-    bool vertical_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
-         horizontal_edge = idx < m_width || idx >= height() * (m_width - 1);
+    bool vertical_edge =
+             idx % m_width == 0ull || idx % m_width == m_width - 1ull,
+         horizontal_edge = idx < m_width || idx >= height() * (m_width - 1ull);
     if (vertical_edge && horizontal_edge)
-      return 3;
+      return 3ull;
     if (vertical_edge || horizontal_edge)
-      return 5;
-    return 8;
+      return 5ull;
+    return 8ull;
   }
 
   // @brief Takes %m_tile_neighbours_idxs as input and does bound checking for
@@ -226,25 +228,31 @@ private:
     std::vector<std::size_t> rv;
     rv.emplace_back(idx - m_width);
     rv.emplace_back(idx + m_width);
-    if (idx % m_width != 0) {
-      rv.emplace_back(idx - m_width - 1);
-      rv.emplace_back(idx - 1);
-      rv.emplace_back(idx + m_width - 1);
-    } else if (idx % m_width != m_width - 1) {
-      rv.emplace_back(idx - m_width + 1);
-      rv.emplace_back(idx + 1);
-      rv.emplace_back(idx + m_width + 1);
+    if (idx % m_width != 0ull) {
+      rv.emplace_back(idx - m_width - 1ull);
+      rv.emplace_back(idx - 1ull);
+      rv.emplace_back(idx + m_width - 1ull);
+    } else if (idx % m_width != m_width - 1ull) {
+      rv.emplace_back(idx - m_width + 1ull);
+      rv.emplace_back(idx + 1ull);
+      rv.emplace_back(idx + m_width + 1ull);
     }
     return rv;
   }
 
-  // @brief Returns tiles which open from flood fill effect including tile
-  // represented by %idx.
+  // @brief Opens tiles starting from given index. If tile is valued mine or a
+  // number, it is opened but nothing else. If tile is empty, its all
+  // neighbours are opened as well and same operation starts all over again from
+  // neighbouring empty tiles.
+  // @note Is being replaced by m_empty_tiles_empty_area() and
+  // m_flood_open_new() for their 5% better performance and flexibility.
   void m_flood_open(std::size_t idx) {
     if (m_b_inside_bounds(idx)) {
       m_tiles[idx].set_open();
       if (m_tiles[idx].is_empty()) {
+        // Vector for keeping note of which tiles have been already checked.
         std::vector<bool> checked_tiles(tile_count(), false);
+        // Stack for all to-be-opened tiles.
         std::stack<std::size_t> st_open;
         st_open.emplace(idx);
         while (!st_open.empty()) {
@@ -259,6 +267,34 @@ private:
         }
       }
     }
+  }
+
+  void m_flood_open_new(std::size_t idx) {
+    if (!m_b_inside_bounds(idx))
+      return;
+    m_tiles[idx].set_open();
+    m_open_neighbours(m_empty_tiles_empty_area(idx));
+  }
+
+  std::vector<std::size_t> m_empty_tiles_empty_area(std::size_t idx) {
+    if (!m_b_inside_bounds(idx) || !m_tiles[idx].is_empty())
+      return std::vector<std::size_t>();
+
+    std::vector<std::size_t> rv;
+    std::stack<std::size_t> st_neigh;
+    std::vector<bool> checked_tiles(tile_count(), false);
+
+    st_neigh.emplace(idx);
+    while (!st_neigh.empty()) {
+      idx = st_neigh.top();
+      st_neigh.pop();
+      checked_tiles[idx] = true;
+      rv.emplace_back(idx);
+      for (auto n : m_tile_neighbours_bnds(idx))
+        if (m_tiles[n].is_empty() && !checked_tiles[n])
+          st_neigh.emplace(n);
+    }
+    return rv;
   }
 
   // NOTE: This is a worker function for %m_open_domino_effect so that iterative
@@ -280,7 +316,7 @@ private:
 
   bool m_open_neighbours(std::size_t idx) {
     auto neighbrs = m_tile_neighbours_bnds(idx);
-    if (neighbrs.size() == 0)
+    if (neighbrs.size() == 0ull)
       return false;
     for (auto i : neighbrs)
       m_tiles[i].set_open();
@@ -289,7 +325,7 @@ private:
 
   bool m_open_neighbours(
       /* const */ std::vector<std::unique_ptr<tile_type>> &neighbrs) {
-    if (neighbrs.size() == 0)
+    if (neighbrs.size() == 0ull)
       return false;
     for (auto &tile : neighbrs)
       tile.get()->set_open();
@@ -297,7 +333,7 @@ private:
   }
 
   bool m_open_neighbours(const std::vector<std::size_t> &neighbrs) {
-    if (neighbrs.size() == 0)
+    if (neighbrs.size() == 0ull)
       return false;
     for (auto i : neighbrs)
       m_tiles[i].set_open();
