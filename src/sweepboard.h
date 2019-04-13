@@ -3,6 +3,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <random>
 #include <stack>
 #include <utility>
@@ -25,6 +26,7 @@ namespace msgn {
  */
 class SweepBoard {
 private:
+  using size_type = std::size_t;
   using tile_type = BoardTile;
   using vector_type = std::vector<tile_type>;
 
@@ -35,7 +37,7 @@ private:
   // Random number generator for randomizing tile values.
   std::mt19937_64 m_rand_engine;
   // Variable for storing the board width.
-  std::size_t m_width;
+  size_type m_width;
 
   // Adds control for the Control class. Might not be final.
   friend class SweepBoardController;
@@ -47,7 +49,7 @@ public:
    * random number generator are defined.
    */
   SweepBoard(
-      std::size_t width, std::size_t height, double mine_fill,
+      size_type width, size_type height, double mine_fill,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed) {
     set_dimensions(width, height);
     init(mine_fill, seed);
@@ -65,7 +67,7 @@ public:
   }
 
   // @brief Sets board dimensions and resizes the container.
-  void set_dimensions(std::size_t width, std::size_t height) {
+  void set_dimensions(size_type width, size_type height) {
     m_width = width;
     m_tiles.resize(m_width * height);
     m_tiles.shrink_to_fit();
@@ -73,14 +75,19 @@ public:
 
   // @brief Sets tile as a mine or not in given position/index.
   // Does bound checking and ignores out-of-bounds conditions.
-  void set_mines(std::size_t pos, bool b_mine = true) {
-    if (pos < tile_count())
-      m_tiles[pos].tile_value =
+  void set_mines(size_type idx, bool b_mine = true) {
+    if (m_b_inside_bounds(idx))
+      m_tiles[idx].tile_value =
           (b_mine ? BoardTile::TILE_MINE : BoardTile::TILE_EMPTY);
   }
 
+  void open_from_tile(size_type idx) {
+    if (m_b_inside_bounds(idx))
+      m_flood_open_new(idx);
+  }
+
   // @brief Returns the amount mines on the board.
-  std::size_t mine_count() const {
+  size_type mine_count() const {
     auto count = 0ull;
     for (auto &tile : m_tiles)
       if (tile.is_mine())
@@ -89,13 +96,13 @@ public:
   }
 
   // @brief Returns the width of the board.
-  std::size_t width() const { return m_width; }
+  size_type width() const { return m_width; }
 
   // @brief Returns the height of the board.
-  std::size_t height() const { return tile_count() / width(); }
+  size_type height() const { return tile_count() / width(); }
 
   // @brief Returns the amount of tiles on the board.
-  std::size_t tile_count() const { return m_tiles.size(); }
+  size_type tile_count() const { return m_tiles.size(); }
 
   // @brief Returns the amount of area that is filled by mines.
   double fill_percent() const {
@@ -121,7 +128,7 @@ public:
         tile.set_mine();
       return;
     }
-    auto mine_count = static_cast<std::size_t>(percent * tile_count());
+    auto mine_count = static_cast<size_type>(percent * tile_count());
     for (auto i = 0ull; i < mine_count; ++i) {
       auto &tile = m_tiles[m_rand_engine() % tile_count()];
       if (tile.is_mine())
@@ -154,7 +161,7 @@ public:
 
   // Adds 1 to tile's value unless it's a mine. Empty tile changes to 1.
   // Does bound checking.
-  void m_promote_tile(std::size_t idx) {
+  void m_promote_tile(size_type idx) {
     if (m_b_inside_bounds(idx)) {
       auto &tile = m_tiles[idx];
       // Adds tile's value.
@@ -163,14 +170,14 @@ public:
   }
 
   // Checks that given index is inside the bounds of board size.
-  bool m_b_inside_bounds(std::size_t index) const {
-    return (index >= 0ll) && (index < tile_count());
+  bool m_b_inside_bounds(size_type index) const {
+    return index < tile_count();
   }
 
   // Returns next tile index with the type of mine starting from optional index.
   // If mine not found until the end of the array, returns ULLONG_MAX
   // (0xffffffffffffffff).
-  std::size_t m_next_mine(std::size_t st_idx = 0ull) const {
+  size_type m_next_mine(size_type st_idx = 0ull) const {
     for (; st_idx < tile_count(); ++st_idx) {
       if (m_tiles[st_idx].is_mine())
         return st_idx;
@@ -180,7 +187,7 @@ public:
 
   // @brief Returns the amount of neighbours tile has inside bounds of the
   // board.
-  std::size_t m_neighbour_count(std::size_t idx) const {
+  size_type m_neighbour_count(size_type idx) const {
     bool vertical_edge =
              idx % m_width == 0ull || idx % m_width == m_width - 1ull,
          horizontal_edge = idx < m_width || idx >= height() * (m_width - 1ull);
@@ -193,7 +200,7 @@ public:
 
   // @brief Takes %m_tile_neighbours_idxs as input and does bound checking for
   // it.
-  std::vector<std::size_t> m_tile_neighbours_bnds(std::size_t idx) const {
+  std::vector<size_type> m_tile_neighbours_bnds(size_type idx) const {
     auto rv = m_tile_neighbours_idxs(idx);
     for (auto i = 0ull; i < rv.size(); ++i)
       if (!m_b_inside_bounds(rv[i]))
@@ -203,8 +210,8 @@ public:
 
   // @brief Takes a vector of neighbour indexes and does bound checking for
   // them. Returns said vector as reference.
-  std::vector<std::size_t> &
-  m_tile_neighbours_bnds(std::vector<std::size_t> &neighbr_idxs) const {
+  std::vector<size_type> &
+  m_tile_neighbours_bnds(std::vector<size_type> &neighbr_idxs) const {
     for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
       if (!m_b_inside_bounds(neighbr_idxs[i]))
         neighbr_idxs.erase(neighbr_idxs.begin() + i);
@@ -213,7 +220,7 @@ public:
 
   // @brief Returns pointers to tile's neighbours. Each pointer is valid.
   std::vector<std::unique_ptr<tile_type>>
-  m_tile_neighbours_bnds_ptr(std::size_t idx) const {
+  m_tile_neighbours_bnds_ptr(size_type idx) const {
     auto vec = m_tile_neighbours_bnds(idx);
     std::vector<std::unique_ptr<tile_type>> rv(vec.size());
     for (auto i = 0ull; i < vec.size(); ++i)
@@ -224,8 +231,8 @@ public:
   // @brief Returns a vector containing index's neighbours. Doesn't do bound
   // checking; check %m_tile_neighbours_bnds for that.
   // @note Returns as a vector so that the output is directly editable in size.
-  std::vector<std::size_t> m_tile_neighbours_idxs(std::size_t idx) const {
-    std::vector<std::size_t> rv;
+  std::vector<size_type> m_tile_neighbours_idxs(size_type idx) const {
+    std::vector<size_type> rv;
     rv.emplace_back(idx - m_width);
     rv.emplace_back(idx + m_width);
     if (idx % m_width != 0ull) {
@@ -240,20 +247,82 @@ public:
     return rv;
   }
 
+  // Testing function made for flood filling bitmaps. Found online.
+  void m_flood_queue(size_type idx) {
+    if (!m_b_inside_bounds(idx))
+      return;
+
+    if (m_tiles[idx].is_empty()) {
+      std::vector<bool> checked_tiles(tile_count(), false);
+      std::queue<size_type> tile_queue;
+      tile_queue.emplace(idx);
+
+      while (!tile_queue.empty()) {
+        auto t = tile_queue.front();
+        tile_queue.pop();
+        if (m_b_inside_bounds(t) && !checked_tiles[t] && m_tiles[t].is_empty()) {
+          m_tiles[t].set_open();
+          m_open_neighbours(t);
+          checked_tiles[t] = true;
+
+          if (t % m_width != m_width - 1)
+            tile_queue.emplace(t + 1);
+          else if (t % m_width != 0)
+            tile_queue.emplace(t - 1);
+          if (t + m_width < tile_count())
+            tile_queue.emplace(t + m_width);
+          if (t - m_width >= 0)
+            tile_queue.emplace(t - m_width);
+        }
+      }
+    }
+  }
+
+  // Testing function made for flood filling bitmaps. Found online.
+  void m_flood_stack(size_type idx) {
+    if (!m_b_inside_bounds(idx))
+      return;
+
+    if (m_tiles[idx].is_empty()) {
+      std::vector<bool> checked_tiles(tile_count(), false);
+      std::stack<size_type> tile_queue;
+      tile_queue.emplace(idx);
+
+      while (!tile_queue.empty()) {
+        auto t = tile_queue.top();
+        tile_queue.pop();
+        if (m_b_inside_bounds(t) && !checked_tiles[t] && m_tiles[t].is_empty()) {
+          m_tiles[t].set_open();
+          m_open_neighbours(t);
+          checked_tiles[t] = true;
+
+          if (t % m_width != m_width - 1)
+            tile_queue.emplace(t + 1);
+          else if (t % m_width != 0)
+            tile_queue.emplace(t - 1);
+          if (t + m_width < tile_count())
+            tile_queue.emplace(t + m_width);
+          if (t - m_width >= 0)
+            tile_queue.emplace(t - m_width);
+        }
+      }
+    }
+  }
+
   // @brief Opens tiles starting from given index. If tile is valued mine or a
   // number, it is opened but nothing else. If tile is empty, its all
   // neighbours are opened as well and same operation starts all over again from
   // neighbouring empty tiles.
   // @note Is being replaced by m_empty_tiles_empty_area() and
   // m_flood_open_new() for their 5% better performance and flexibility.
-  void m_flood_open(std::size_t idx) {
+  void m_flood_open(size_type idx) {
     if (m_b_inside_bounds(idx)) {
       m_tiles[idx].set_open();
       if (m_tiles[idx].is_empty()) {
         // Vector for keeping note of which tiles have been already checked.
         std::vector<bool> checked_tiles(tile_count(), false);
         // Stack for all to-be-opened tiles.
-        std::stack<std::size_t> st_open;
+        std::stack<size_type> st_open;
         st_open.emplace(idx);
         while (!st_open.empty()) {
           idx = st_open.top();
@@ -269,19 +338,17 @@ public:
     }
   }
 
-  void m_flood_open_new(std::size_t idx) {
-    if (!m_b_inside_bounds(idx))
-      return;
+  void m_flood_open_new(size_type idx) {
     m_tiles[idx].set_open();
     m_open_neighbours(m_empty_tiles_empty_area(idx));
   }
 
-  std::vector<std::size_t> m_empty_tiles_empty_area(std::size_t idx) const {
-    if (!m_b_inside_bounds(idx) || !m_tiles[idx].is_empty())
-      return std::vector<std::size_t>();
+  std::vector<size_type> m_empty_tiles_empty_area(size_type idx) const {
+    if (!m_tiles[idx].is_empty())
+      return std::vector<size_type>{};
 
-    std::vector<std::size_t> rv;
-    std::stack<std::size_t> st_neigh;
+    std::vector<size_type> rv;
+    std::stack<size_type> st_neigh;
     std::vector<bool> checked_tiles(tile_count(), false);
 
     st_neigh.emplace(idx);
@@ -297,7 +364,29 @@ public:
     return rv;
   }
 
-  bool m_open_neighbours(std::size_t idx) {
+  std::vector<size_type>
+  m_empty_tiles_empty_area_test(size_type idx) const {
+    if (!m_tiles[idx].is_empty())
+      return std::vector<size_type>();
+
+    std::vector<size_type> rv;
+    std::stack<size_type> st_neigh;
+    std::vector<bool> checked_tiles(tile_count(), false);
+
+    st_neigh.emplace(idx);
+    while (!st_neigh.empty()) {
+      idx = st_neigh.top();
+      st_neigh.pop();
+      checked_tiles[idx] = true;
+      rv.emplace_back(idx);
+      for (auto n : m_tile_neighbours_idxs(idx))
+        if (m_b_inside_bounds(n) && m_tiles[n].is_empty() && !checked_tiles[n])
+          st_neigh.emplace(n);
+    }
+    return rv;
+  }
+
+  bool m_open_neighbours(size_type idx) {
     auto neighbrs = m_tile_neighbours_bnds(idx);
     if (neighbrs.size() == 0ull)
       return false;
@@ -315,7 +404,7 @@ public:
     return true;
   }
 
-  bool m_open_neighbours(const std::vector<std::size_t> &neighbrs) {
+  bool m_open_neighbours(const std::vector<size_type> &neighbrs) {
     if (neighbrs.size() == 0ull)
       return false;
     for (auto i : neighbrs)
