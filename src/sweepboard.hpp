@@ -1,3 +1,6 @@
+#ifndef SWEEPBOARD_HPP
+#define SWEEPBOARD_HPP
+
 #include <random>
 #include <stack>
 #include <utility>
@@ -51,13 +54,18 @@ public:
   }
   ~SweepBoard() noexcept {}
 
-  // @brief Initializes the board with mine fill percent and a seed for random
-  // number generator. Also sets tile values as mines, numbers or emptys.
-  void init(double mine_fill, std::mt19937_64::result_type seed) {
-    m_rand_engine.seed(seed);
+  // @brief Initializes the board with mine fill percent. Also sets tile values as mines, numbers or emptys.
+  void init(double mine_fill) {
     m_zero_out();
     m_set_mines(mine_fill);
     m_set_numbered_tiles();
+  }
+
+  // @brief Initializes the board with mine fill percent and a seed for random
+  // number generator. Also sets tile values as mines, numbers or emptys.
+  void init(double mine_fill, std::mt19937_64::result_type seed) {
+    m_set_engine_seed(seed);
+    init(mine_fill);
   }
 
   // @brief Sets board dimensions and resizes the container.
@@ -104,11 +112,15 @@ public:
   }
 
 private:
-public:
+  // @brief Sets RNG's seed.
+  void m_set_engine_seed(std::mt19937_64::result_type seed) {
+    m_rand_engine.seed(seed);
+  }
+
   // @brief Sets every tile to an empty one.
   void m_zero_out() {
     for (auto &tile : m_tiles)
-      tile.reset();
+      tile.clear();
   }
 
   // Calculates mine count from given percentage and distributes them evenly.
@@ -180,8 +192,7 @@ public:
   // @brief Returns the amount of neighbours tile has inside bounds of the
   // board.
   size_type m_neighbour_count(size_type idx) const {
-    bool vertical_edge =
-             idx % m_width == 0 || idx % m_width == m_width - 1,
+    bool vertical_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
          horizontal_edge = idx < m_width || idx >= height() * (m_width - 1);
     if (vertical_edge && horizontal_edge)
       return 3;
@@ -278,3 +289,5 @@ public:
 }; // class SweepBoard
 
 } // namespace msgn
+
+#endif

@@ -1,3 +1,5 @@
+#ifndef BOARDTILE_HPP
+#define BOARDTILE_HPP
 
 namespace msgn {
 /**
@@ -71,3 +73,5 @@ public:
 }; // class BoardTile
 
 } // namespace msgn
+
+#endif

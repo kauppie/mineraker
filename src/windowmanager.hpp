@@ -1,3 +1,6 @@
+#ifndef WINDOWMANAGER_HPP
+#define WINDOWMANAGER_HPP
+
 #include <string_view>
 #include <string>
 
@@ -34,3 +37,5 @@ private:
 };
 
 } // namespace msgn
+
+#endif
