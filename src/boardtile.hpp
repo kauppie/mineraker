@@ -28,37 +28,37 @@ public:
                        TILE_8 = 8, TILE_MINE = 9;
 
   // @brief Default constructor that sets tile to cleared one.
-  BoardTile() : tile_value(TILE_EMPTY), b_flagged(false), b_open(false) {}
+  constexpr BoardTile() : tile_value(TILE_EMPTY), b_flagged(false), b_open(false) {}
   // @brief Constructor that takes tile value as parameter. Tile is set to
   // resetted one.
-  BoardTile(tile_value_type tile_value)
+  constexpr BoardTile(tile_value_type tile_value)
       : tile_value(tile_value), b_open(false), b_flagged(false) {}
   // @brief Constructor that takes all tile defining values as parameters and
   // constructs variables from them.
-  BoardTile(tile_value_type tile_value, bool is_flagged, bool is_open)
+  constexpr BoardTile(tile_value_type tile_value, bool is_flagged, bool is_open)
       : tile_value(tile_value), b_flagged(is_flagged), b_open(is_open) {}
   // @brief Deconstructor.
   ~BoardTile() noexcept {}
 
   // @brief Returns true when tile is mine. False otherwise.
-  bool is_mine() const noexcept { return tile_value == TILE_MINE; }
+  constexpr bool is_mine() const noexcept { return tile_value == TILE_MINE; }
   // @brief Returns true when tile is empty. False otherwise.
-  bool is_empty() const noexcept { return tile_value == TILE_EMPTY; }
+  constexpr bool is_empty() const noexcept { return tile_value == TILE_EMPTY; }
   // @brief Sets tile to a mine.
-  void set_mine() noexcept { tile_value = TILE_MINE; }
+  constexpr void set_mine() noexcept { tile_value = TILE_MINE; }
   // @brief Sets tile to a empty tile.
-  void set_empty() noexcept { tile_value = TILE_EMPTY; }
+  constexpr void set_empty() noexcept { tile_value = TILE_EMPTY; }
   // @brief Opens tile.
-  void set_open() noexcept { b_open = true; }
+  constexpr void set_open() noexcept { b_open = true; }
   // @brief Closes tile.
-  void set_closed() noexcept { b_open = false; }
+  constexpr void set_closed() noexcept { b_open = false; }
   // @brief Sets tile flagged.
-  void set_flagged() noexcept { b_flagged = true; }
+  constexpr void set_flagged() noexcept { b_flagged = true; }
   // @brief Sets tile unflagged.
-  void set_unflagged() noexcept { b_flagged = false; }
+  constexpr void set_unflagged() noexcept { b_flagged = false; }
 
   // @brief Clears BoardTile to have value of closed, unflagged and empty tile.
-  void clear() noexcept {
+  constexpr void clear() noexcept {
     set_closed();
     set_unflagged();
     set_empty();
@@ -66,7 +66,7 @@ public:
 
   // @brief Resets BoardTile to have value of closed and unflagged. Tile's board
   // value is left untouched.
-  void reset() noexcept {
+  constexpr void reset() noexcept {
     set_closed();
     set_unflagged();
   }
