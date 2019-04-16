@@ -1,21 +1,26 @@
 #include <string_view>
+#include <string>
 
 #include "SDL2/SDL.h"
 
-class SDLWindowManager {
+namespace msgn {
+
+class WindowManager {
 public:
   using size_type = unsigned long;
   using diff_type = long;
 
 private:
   SDL_Window *m_win;
-  SDL_Renderer *renderer;
+  SDL_Renderer *m_rndrer;
 
   size_type m_width, m_height;
 
 public:
-  SDLWindowManager() { SDL_Init(SDL_INIT_VIDEO); }
-  ~SDLWindowManager() {
+  WindowManager() { SDL_Init(SDL_INIT_VIDEO); }
+  ~WindowManager() {
+    if (m_rndrer != nullptr)
+      SDL_DestroyRenderer(m_rndrer);
     if (m_win != nullptr)
       SDL_DestroyWindow(m_win);
   }
@@ -27,3 +32,5 @@ public:
 
 private:
 };
+
+} // namespace msgn
