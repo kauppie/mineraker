@@ -38,6 +38,7 @@ private:
 
   // Adds control for the Control class. Might not be final.
   friend class SweepBoardController;
+  // Allows formatter to access private methods and variables.
   friend class SweepBoardFormat;
 
 public:
@@ -127,10 +128,12 @@ private:
         tile.set_mine();
       return;
     }
+    // Random number generator for random mine positions.
     std::mt19937_64 rng(seed);
     auto mine_count = static_cast<size_type>(mine_fill * tile_count());
     for (auto i = 0ull; i < mine_count; ++i) {
       auto &tile = m_tiles[rng() % tile_count()];
+      // Reduce %i because the amount of mines won't change.
       if (tile.is_mine())
         --i;
       tile.set_mine();
@@ -144,13 +147,15 @@ private:
       m_promote_tile(i - m_width);
       m_promote_tile(i + m_width);
 
-      // If index isn't against the left side wall.
+      // If (index isn't against the right side wall). These indexes wrap around
+      // the board to the otherside if %idx is next to the left side wall.
       if (i % m_width != 0) {
         m_promote_tile(i - m_width - 1);
         m_promote_tile(i - 1);
         m_promote_tile(i + m_width - 1);
       }
-      // If index isn't against the right side wall.
+      // If (index isn't against the right side wall). These indexes wrap around
+      // the board to the otherside if %idx is next to the right side wall.
       if (i % m_width != m_width - 1) {
         m_promote_tile(i - m_width + 1);
         m_promote_tile(i + 1);
@@ -188,10 +193,13 @@ private:
   size_type m_neighbour_count(size_type idx) const {
     bool vertical_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
          horizontal_edge = idx < m_width || idx >= height() * (m_width - 1);
+    // If is against both vertically and horizontally going walls.
     if (vertical_edge && horizontal_edge)
       return 3;
+    // If is against either vertically and horizontally going wall.
     if (vertical_edge || horizontal_edge)
       return 5;
+    // If isn't against any walls.
     return 8;
   }
 
@@ -206,7 +214,7 @@ private:
   }
 
   // @brief Takes a vector of neighbour indexes and does bound checking for
-  // them. Returns said vector as reference.
+  // the contained indexes. Returns said vector as reference.
   std::vector<size_type> &
   m_tile_neighbours_bnds(std::vector<size_type> &neighbr_idxs) const {
     for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
@@ -222,11 +230,15 @@ private:
     std::vector<size_type> rv;
     rv.emplace_back(idx - m_width);
     rv.emplace_back(idx + m_width);
+    // If (index isn't against the right side wall). These indexes wrap around
+      // the board to the otherside if %idx is next to the left side wall.
     if (idx % m_width != 0) {
       rv.emplace_back(idx - m_width - 1);
       rv.emplace_back(idx - 1);
       rv.emplace_back(idx + m_width - 1);
     }
+    // If (index isn't against the right side wall). These indexes wrap around
+    // the board to the otherside if %idx is next to the right side wall.
     if (idx % m_width != m_width - 1) {
       rv.emplace_back(idx - m_width + 1);
       rv.emplace_back(idx + 1);
@@ -246,8 +258,11 @@ private:
     if (!m_tiles[idx].is_empty())
       return std::vector<size_type>{};
 
+    // Vector to be returned.
     std::vector<size_type> rv;
+    // Stack for storing neighbouring tile's which are to be checked.
     std::stack<size_type> st_neigh;
+    // Stores which tiles are already run by the loop.
     std::vector<bool> checked_tiles(tile_count(), false);
 
     st_neigh.emplace(idx);
