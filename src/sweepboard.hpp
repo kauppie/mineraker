@@ -151,7 +151,7 @@ private:
         m_promote_tile(i + m_width - 1);
       }
       // If index isn't against the right side wall.
-      else if (i % m_width != m_width - 1) {
+      if (i % m_width != m_width - 1) {
         m_promote_tile(i - m_width + 1);
         m_promote_tile(i + 1);
         m_promote_tile(i + m_width + 1);
