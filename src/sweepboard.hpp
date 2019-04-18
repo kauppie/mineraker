@@ -1,12 +1,13 @@
 #ifndef SWEEPBOARD_HPP
 #define SWEEPBOARD_HPP
 
+#include <functional>
 #include <random>
 #include <stack>
 #include <utility>
 #include <vector>
 
-#include "board_tile.hpp"
+#include "boardtile.hpp"
 
 namespace msgn {
 
@@ -26,18 +27,18 @@ private:
   using size_type = std::size_t;
   using tile_type = BoardTile;
   using vector_type = std::vector<tile_type>;
+  using this_type = SweepBoard;
 
   static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
   // Default container for the board tiles.
   vector_type m_tiles;
-  // Random number generator for randomizing tile values.
-  std::mt19937_64 m_rand_engine;
   // Variable for storing the board width.
   size_type m_width;
 
   // Adds control for the Control class. Might not be final.
   friend class SweepBoardController;
+  friend class SweepBoardFormat;
 
 public:
   // @brief Default constructor without parameters.
@@ -50,28 +51,24 @@ public:
       size_type width, size_type height, double mine_fill,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed) {
     set_dimensions(width, height);
-    init(mine_fill, seed);
+    init(seed, mine_fill);
   }
+  SweepBoard(const this_type &other) {}
+  SweepBoard(this_type &&other) {}
   ~SweepBoard() noexcept {}
 
-  // @brief Initializes the board with mine fill percent. Also sets tile values as mines, numbers or emptys.
-  void init(double mine_fill) {
-    m_zero_out();
-    m_set_mines(mine_fill);
+  // @brief Initializes the board with mine fill percent. Also sets tile values
+  // as mines, numbers or emptys.
+  void init(std::mt19937_64::result_type seed, double mine_fill) {
+    m_clear();
+    m_set_mines(seed, mine_fill);
     m_set_numbered_tiles();
-  }
-
-  // @brief Initializes the board with mine fill percent and a seed for random
-  // number generator. Also sets tile values as mines, numbers or emptys.
-  void init(double mine_fill, std::mt19937_64::result_type seed) {
-    m_set_engine_seed(seed);
-    init(mine_fill);
   }
 
   // @brief Sets board dimensions and resizes the container.
   void set_dimensions(size_type width, size_type height) {
     m_width = width;
-    m_tiles.resize(m_width * height);
+    m_tiles.resize(width * height);
     m_tiles.shrink_to_fit();
   }
 
@@ -98,7 +95,7 @@ public:
   }
 
   // @brief Returns the width of the board.
-  size_type width() const { return m_width; }
+  constexpr size_type width() const { return m_width; }
 
   // @brief Returns the height of the board.
   size_type height() const { return tile_count() / width(); }
@@ -112,51 +109,48 @@ public:
   }
 
 private:
-  // @brief Sets RNG's seed.
-  void m_set_engine_seed(std::mt19937_64::result_type seed) {
-    m_rand_engine.seed(seed);
-  }
-
   // @brief Sets every tile to an empty one.
-  void m_zero_out() {
+  void m_clear() {
     for (auto &tile : m_tiles)
       tile.clear();
   }
 
-  // Calculates mine count from given percentage and distributes them evenly.
-  // NOTE: Before calling, board must be empty of mines. Otherwise mine count
+  // @brief Calculates mine count from given percentage and distributes them
+  // evenly.
+  // @note Before calling, board must be empty of mines. Otherwise mine count
   // cannot be guaranteed.
-  void m_set_mines(double percent) {
-    if (percent <= 0.0)
+  void m_set_mines(std::mt19937_64::result_type seed, double mine_fill) {
+    if (mine_fill <= 0.0)
       return;
-    else if (percent >= 1.0) {
+    else if (mine_fill >= 1.0) {
       for (auto &tile : m_tiles)
         tile.set_mine();
       return;
     }
-    auto mine_count = static_cast<size_type>(percent * tile_count());
-    for (auto i = 0; i < mine_count; ++i) {
-      auto &tile = m_tiles[m_rand_engine() % tile_count()];
+    std::mt19937_64 rng(seed);
+    auto mine_count = static_cast<size_type>(mine_fill * tile_count());
+    for (auto i = 0ull; i < mine_count; ++i) {
+      auto &tile = m_tiles[rng() % tile_count()];
       if (tile.is_mine())
         --i;
       tile.set_mine();
     }
   }
 
-  // Sets tiles without mines to have numbers representing how many mines are
-  // nearby.
+  // @brief Sets tiles without mines to have numbers representing how many mines
+  // are nearby.
   void m_set_numbered_tiles() {
     for (auto i = m_next_mine(); i < tile_count(); i = m_next_mine(i + 1)) {
       m_promote_tile(i - m_width);
       m_promote_tile(i + m_width);
 
-      // If index isn't against left side wall.
+      // If index isn't against the left side wall.
       if (i % m_width != 0) {
         m_promote_tile(i - m_width - 1);
         m_promote_tile(i - 1);
         m_promote_tile(i + m_width - 1);
       }
-      // If index isn't against right side wall.
+      // If index isn't against the right side wall.
       else if (i % m_width != m_width - 1) {
         m_promote_tile(i - m_width + 1);
         m_promote_tile(i + 1);
@@ -165,7 +159,7 @@ private:
     }
   }
 
-  // Adds 1 to tile's value unless it's a mine. Empty tile changes to 1.
+  // @brief Adds 1 to tile's value unless it's a mine. Empty tile changes to 1.
   // Does bound checking.
   void m_promote_tile(size_type idx) {
     if (m_b_inside_bounds(idx)) {
@@ -175,11 +169,11 @@ private:
     }
   }
 
-  // Checks that given index is inside the bounds of board size.
+  // @brief Checks that given index is inside the bounds of board size.
   bool m_b_inside_bounds(size_type index) const { return index < tile_count(); }
 
-  // Returns next tile index with the type of mine starting from optional index.
-  // If mine not found until the end of the array, returns ULLONG_MAX
+  // @brief Returns next tile index with the type of mine starting from optional
+  // index. If mine not found until the end of the array, returns ULLONG_MAX
   // (0xffffffffffffffff).
   size_type m_next_mine(size_type st_idx = 0) const {
     for (; st_idx < tile_count(); ++st_idx) {
@@ -205,7 +199,7 @@ private:
   // it.
   std::vector<size_type> m_tile_neighbours_bnds(size_type idx) const {
     auto rv = m_tile_neighbours_idxs(idx);
-    for (auto i = 0; i < rv.size(); ++i)
+    for (auto i = 0ull; i < rv.size(); ++i)
       if (!m_b_inside_bounds(rv[i]))
         rv.erase(rv.begin() + i);
     return rv;
@@ -215,7 +209,7 @@ private:
   // them. Returns said vector as reference.
   std::vector<size_type> &
   m_tile_neighbours_bnds(std::vector<size_type> &neighbr_idxs) const {
-    for (auto i = 0; i < neighbr_idxs.size(); ++i)
+    for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
       if (!m_b_inside_bounds(neighbr_idxs[i]))
         neighbr_idxs.erase(neighbr_idxs.begin() + i);
     return neighbr_idxs;
@@ -232,7 +226,8 @@ private:
       rv.emplace_back(idx - m_width - 1);
       rv.emplace_back(idx - 1);
       rv.emplace_back(idx + m_width - 1);
-    } else if (idx % m_width != m_width - 1) {
+    }
+    if (idx % m_width != m_width - 1) {
       rv.emplace_back(idx - m_width + 1);
       rv.emplace_back(idx + 1);
       rv.emplace_back(idx + m_width + 1);
@@ -245,6 +240,8 @@ private:
     m_open_neighbours(m_empty_tiles_empty_area(idx));
   }
 
+  // @brief Returns vector of empty tiles that are neighbouring each other
+  // starting from given index.
   std::vector<size_type> m_empty_tiles_empty_area(size_type idx) const {
     if (!m_tiles[idx].is_empty())
       return std::vector<size_type>{};
@@ -266,15 +263,12 @@ private:
     return rv;
   }
 
+  // @brief Opens neighbours of a tile at the given index.
   bool m_open_neighbours(size_type idx) {
-    auto neighbrs = m_tile_neighbours_bnds(idx);
-    if (neighbrs.size() == 0)
-      return false;
-    for (auto i : neighbrs)
-      m_tiles[i].set_open();
-    return true;
+    return m_open_neighbours(m_tile_neighbours_bnds(idx));
   }
 
+  // @brief Takes vector of indexes and opens tiles represented by them.
   bool m_open_neighbours(const std::vector<size_type> &neighbrs) {
     if (neighbrs.size() == 0)
       return false;
@@ -283,8 +277,9 @@ private:
     return true;
   }
 
-  // Returns true if the board is solvable without guessing; false otherwise.
-  // TODO: implement
+  // @brief Returns true if the board is solvable without guessing. False
+  // otherwise.
+  // @todo Implement.
   bool m_b_solvable() const { return false; }
 }; // class SweepBoard
 
