@@ -35,6 +35,9 @@ private:
   vector_type m_tiles;
   // Variable for storing the board width.
   size_type m_width;
+  // Seed for mined tile position randomization.
+  std::mt19937_64::result_type m_seed;
+  size_type m_mine_count;
 
   // Adds control for the Control class. Might not be final.
   friend class SweepBoardController;
@@ -48,21 +51,54 @@ public:
   // @brief Constructor with board defining parameters.
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
-  SweepBoard(
+  explicit SweepBoard(
       size_type width, size_type height, double mine_fill,
-      std::mt19937_64::result_type seed = std::mt19937_64::default_seed) {
+      std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
+      : m_seed(seed) {
     set_dimensions(width, height);
-    init(seed, mine_fill);
+    init(mine_fill);
   }
-  SweepBoard(const this_type &other) {}
-  SweepBoard(this_type &&other) {}
+  // @brief Constructor with board defining parameters.
+  // Through this constructor shape of the board, it's mine count and seed for
+  // random number generator are defined.
+  explicit SweepBoard(
+      size_type width, size_type height, size_type mine_count,
+      std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
+      : m_seed(seed) {
+    set_dimensions(width, height);
+    init(mine_count);
+  }
   ~SweepBoard() noexcept {}
+
+  auto seed(std::mt19937_64::result_type seed) {
+    auto old = m_seed;
+    m_seed = seed;
+    return old;
+  }
+
+  constexpr std::mt19937_64::result_type seed() const noexcept {
+    return m_seed;
+  }
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
-  void init(std::mt19937_64::result_type seed, double mine_fill) {
+  void init(double mine_fill) {
+    init(static_cast<size_type>(mine_fill * tile_count()));
+  }
+
+  // @brief Initializes the board with mine fill percent. Also sets tile values
+  // as mines, numbers or emptys.
+  void init(size_type mine_count) {
     m_clear();
-    m_set_mines(seed, mine_fill);
+    m_set_mines(m_seed, mine_count);
+    m_set_numbered_tiles();
+  }
+
+  // @brief Initializes the board with mine fill percent. Also sets tile values
+  // as mines, numbers or emptys.
+  void init() {
+    m_clear();
+    m_set_mines(m_seed, m_mine_count);
     m_set_numbered_tiles();
   }
 
@@ -86,26 +122,20 @@ public:
       m_flood_open(idx);
   }
 
-  // @brief Returns the amount mines on the board.
-  size_type mine_count() const {
-    auto count = 0;
-    for (auto &tile : m_tiles)
-      if (tile.is_mine())
-        ++count;
-    return count;
-  }
-
   // @brief Returns the width of the board.
-  constexpr size_type width() const { return m_width; }
+  constexpr size_type width() const noexcept { return m_width; }
 
   // @brief Returns the height of the board.
-  size_type height() const { return tile_count() / width(); }
+  size_type height() const noexcept { return tile_count() / width(); }
+
+  // @brief Returns the amount mines on the board.
+  constexpr size_type mine_count() const noexcept { return m_mine_count; }
 
   // @brief Returns the amount of tiles on the board.
-  size_type tile_count() const { return m_tiles.size(); }
+  size_type tile_count() const noexcept { return m_tiles.size(); }
 
   // @brief Returns the amount of area that is filled by mines.
-  double fill_percent() const {
+  double fill_percent() const noexcept {
     return static_cast<double>(mine_count()) / tile_count();
   }
 
@@ -120,17 +150,15 @@ private:
   // evenly.
   // @note Before calling, board must be empty of mines. Otherwise mine count
   // cannot be guaranteed.
-  void m_set_mines(std::mt19937_64::result_type seed, double mine_fill) {
-    if (mine_fill <= 0.0)
-      return;
-    else if (mine_fill >= 1.0) {
+  void m_set_mines(std::mt19937_64::result_type seed, size_type mine_count) {
+    m_mine_count = std::min(mine_count, tile_count());
+    if (mine_count >= tile_count()) {
       for (auto &tile : m_tiles)
         tile.set_mine();
       return;
     }
     // Random number generator for random mine positions.
     std::mt19937_64 rng(seed);
-    auto mine_count = static_cast<size_type>(mine_fill * tile_count());
     for (auto i = 0ull; i < mine_count; ++i) {
       auto &tile = m_tiles[rng() % tile_count()];
       // Reduce %i because the amount of mines won't change.
@@ -146,7 +174,6 @@ private:
     for (auto i = m_next_mine(); i < tile_count(); i = m_next_mine(i + 1)) {
       m_promote_tile(i - m_width);
       m_promote_tile(i + m_width);
-
       // If (index isn't against the right side wall). These indexes wrap around
       // the board to the otherside if %idx is next to the left side wall.
       if (i % m_width != 0) {
@@ -196,7 +223,7 @@ private:
     // If is against both vertically and horizontally going walls.
     if (vertical_edge && horizontal_edge)
       return 3;
-    // If is against either vertically and horizontally going wall.
+    // If is against either vertically or horizontally going wall.
     if (vertical_edge || horizontal_edge)
       return 5;
     // If isn't against any walls.
@@ -231,7 +258,7 @@ private:
     rv.emplace_back(idx - m_width);
     rv.emplace_back(idx + m_width);
     // If (index isn't against the right side wall). These indexes wrap around
-      // the board to the otherside if %idx is next to the left side wall.
+    // the board to the otherside if %idx is next to the left side wall.
     if (idx % m_width != 0) {
       rv.emplace_back(idx - m_width - 1);
       rv.emplace_back(idx - 1);
