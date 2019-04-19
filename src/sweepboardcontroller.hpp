@@ -1,7 +1,9 @@
 #ifndef SWEEPBOARDCONTROLLER_HPP
 #define SWEEPBOARDCONTROLLER_HPP
 
-#include "board_tile.hpp"
+#include <random>
+
+#include "boardtile.hpp"
 #include "sweepboard.hpp"
 
 namespace msgn {
@@ -9,19 +11,16 @@ namespace msgn {
 class SweepBoardController {
 private:
   SweepBoard m_board;
-  double m_mine_fill;
-  std::mt19937_64::result_type m_seed;
+
+  using size_type = SweepBoard::size_type;
 
 public:
   SweepBoardController() {}
   SweepBoardController(
       std::size_t width, std::size_t height, double mine_fill,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
-      : m_board(width, height, mine_fill, seed) {
-    m_mine_fill = mine_fill;
-    m_seed = seed;
-  }
-  ~SweepBoardController() {}
+      : m_board(width, height, mine_fill, seed) {}
+  ~SweepBoardController() noexcept {}
 
   void reset_board() {
     for (auto &tile : m_board.m_tiles)
@@ -29,8 +28,12 @@ public:
   }
 
   void new_board() {
-    m_board.m_zero_out();
-    m_board.init(m_mine_fill, m_seed);
+    m_board.m_clear();
+    m_board.init();
+  }
+
+  void resize_board(size_type width, size_type height) {
+    m_board.set_dimensions(width, height);
   }
 
 private:
