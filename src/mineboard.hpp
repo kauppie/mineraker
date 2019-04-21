@@ -1,5 +1,5 @@
-#ifndef SWEEPBOARD_HPP
-#define SWEEPBOARD_HPP
+#ifndef MINEBOARD_HPP
+#define MINEBOARD_HPP
 
 #include <functional>
 #include <random>
@@ -9,7 +9,7 @@
 
 #include "boardtile.hpp"
 
-namespace msgn {
+namespace rake {
 
 /*
  * @brief Class defines a board with tiles which type of empty, number or a
@@ -19,15 +19,15 @@ namespace msgn {
  * - b_solvable member function.
  * - event class inheritance or object
  *   to drive game state. (update) Object called
- *   SweepBoardController has a event handler and
- *   SweepBoard to contain board data.
+ *   MineBoardController has a event handler and
+ *   MineBoard to contain board data.
  */
-class SweepBoard {
+class MineBoard {
 private:
   using size_type = std::size_t;
   using tile_type = BoardTile;
   using vector_type = std::vector<tile_type>;
-  using this_type = SweepBoard;
+  using this_type = MineBoard;
 
   static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
@@ -40,35 +40,35 @@ private:
   size_type m_mine_count;
 
   // Adds control for the Control class. Might not be final.
-  friend class SweepBoardController;
+  friend class MineBoardController;
   // Allows formatter to access private methods and variables.
-  friend class SweepBoardFormat;
+  friend class MineBoardFormat;
 
 public:
   // @brief Default constructor without parameters.
-  explicit SweepBoard() {}
+  explicit MineBoard() {}
 
   // @brief Constructor with board defining parameters.
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
-  explicit SweepBoard(
+  explicit MineBoard(
       size_type width, size_type height, double mine_fill,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
-      : m_seed(seed) {
+      : m_width(0), m_seed(seed), m_mine_count(0) {
     set_dimensions(width, height);
     init(mine_fill);
   }
   // @brief Constructor with board defining parameters.
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
-  explicit SweepBoard(
+  explicit MineBoard(
       size_type width, size_type height, size_type mine_count,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
-      : m_seed(seed) {
+      : m_width(0), m_seed(seed), m_mine_count(0) {
     set_dimensions(width, height);
     init(mine_count);
   }
-  ~SweepBoard() noexcept {}
+  ~MineBoard() noexcept {}
 
   auto seed(std::mt19937_64::result_type seed) {
     auto old = m_seed;
@@ -76,9 +76,7 @@ public:
     return old;
   }
 
-  constexpr std::mt19937_64::result_type seed() const noexcept {
-    return m_seed;
-  }
+  constexpr auto seed() const noexcept { return m_seed; }
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
@@ -123,13 +121,13 @@ public:
   }
 
   // @brief Returns the width of the board.
-  constexpr size_type width() const noexcept { return m_width; }
+  constexpr auto width() const noexcept { return m_width; }
 
   // @brief Returns the height of the board.
   size_type height() const noexcept { return tile_count() / width(); }
 
   // @brief Returns the amount mines on the board.
-  constexpr size_type mine_count() const noexcept { return m_mine_count; }
+  constexpr auto mine_count() const noexcept { return m_mine_count; }
 
   // @brief Returns the amount of tiles on the board.
   size_type tile_count() const noexcept { return m_tiles.size(); }
@@ -322,9 +320,22 @@ private:
   // @brief Returns true if the board is solvable without guessing. False
   // otherwise.
   // @todo Implement.
-  bool m_b_solvable() const { return false; }
-}; // class SweepBoard
+  bool m_b_solvable() const {
+    std::vector<size_type> mines_idx(m_mine_count);
+    for (auto i = m_next_mine(); i < tile_count(); i = m_next_mine(i + 1))
+      mines_idx.emplace_back(i);
 
-} // namespace msgn
+    return false;
+  }
+
+  // @brief worker method for m_b_solvable. Calculates if mine is position is
+  // calculatable from neighbouring numbered tiles. Allows m_b_solvable to span
+  // several threads to find the solution. Connect those threads with atomic
+  // value which representes current state -> is mine calculatable; when this
+  // value changes to false, abort.
+  bool m_is_mine_solvable() const { return false; }
+}; // class MineBoard
+
+} // namespace rake
 
 #endif

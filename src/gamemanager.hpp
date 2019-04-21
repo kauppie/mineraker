@@ -6,14 +6,14 @@
 #include "sweepboardcontroller.hpp"
 #include "windowmanager.hpp"
 
-namespace msgn {
+namespace rake {
 
 class GameManager {
 public:
   using size_type = std::size_t;
 
 private:
-  SweepBoardController m_sbcontrol;
+  MineBoardController m_sbcontrol;
   WindowManager m_window;
 
   bool m_exit;
@@ -79,6 +79,6 @@ private:
 
 }; // class Gamemanager
 
-} // namespace msgn
+} // namespace rake
 
 #endif

@@ -6,7 +6,7 @@
 
 #include "SDL2/SDL.h"
 
-namespace msgn {
+namespace rake {
 
 class WindowManager {
 public:
@@ -47,13 +47,11 @@ public:
     SDL_RenderClear(m_renderer);
   }
 
-  operator SDL_Renderer*() {
-    return m_renderer;
-  }
+  operator SDL_Renderer *() { return m_renderer; }
 
 private:
 }; // class WindowManager
 
-} // namespace msgn
+} // namespace rake
 
 #endif

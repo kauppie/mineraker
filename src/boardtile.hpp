@@ -1,9 +1,9 @@
 #ifndef BOARDTILE_HPP
 #define BOARDTILE_HPP
 
-namespace msgn {
+namespace rake {
 /**
- * @brief class supporting activity and reducing complexity of SweepBoard.
+ * @brief class supporting activity and reducing complexity of MineBoard.
  * Contains data of single tile placed on a board. Such information is: is the
  * tile open, is flag set on it and it's holding value which is either empty
  * represented by 0, number between 1-8 or mine represented by 9.
@@ -76,6 +76,6 @@ public:
   }
 }; // class BoardTile
 
-} // namespace msgn
+} // namespace rake
 
 #endif

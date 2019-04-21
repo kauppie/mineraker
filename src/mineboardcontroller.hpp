@@ -1,26 +1,26 @@
-#ifndef SWEEPBOARDCONTROLLER_HPP
-#define SWEEPBOARDCONTROLLER_HPP
+#ifndef MINEBOARDCONTROLLER_HPP
+#define MINEBOARDCONTROLLER_HPP
 
 #include <random>
 
 #include "boardtile.hpp"
 #include "sweepboard.hpp"
 
-namespace msgn {
+namespace rake {
 
-class SweepBoardController {
+class MineBoardController {
 private:
-  SweepBoard m_board;
+  MineBoard m_board;
 
-  using size_type = SweepBoard::size_type;
+  using size_type = MineBoard::size_type;
 
 public:
-  SweepBoardController() {}
-  SweepBoardController(
+  MineBoardController() {}
+  MineBoardController(
       std::size_t width, std::size_t height, double mine_fill,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
       : m_board(width, height, mine_fill, seed) {}
-  ~SweepBoardController() noexcept {}
+  ~MineBoardController() noexcept {}
 
   void reset_board() {
     for (auto &tile : m_board.m_tiles)
@@ -37,8 +37,8 @@ public:
   }
 
 private:
-}; // class SweepBoardController
+}; // class MineBoardController
 
-} // namespace msgn
+} // namespace rake
 
 #endif
