@@ -54,11 +54,17 @@ public:
   // @brief Sets tile to empty tile.
   constexpr void set_empty() noexcept { tile_value = TILE_EMPTY; }
   // @brief Opens tile.
-  constexpr void set_open() noexcept { b_open = true; }
+  constexpr void set_open() noexcept {
+    if (!b_flagged)
+      b_open = true;
+  }
   // @brief Closes tile.
   constexpr void set_closed() noexcept { b_open = false; }
   // @brief Sets tile flagged.
-  constexpr void set_flagged() noexcept { b_flagged = true; }
+  constexpr void set_flagged() noexcept {
+    if (!b_open)
+      b_flagged = true;
+  }
   // @brief Sets tile unflagged.
   constexpr void set_unflagged() noexcept { b_flagged = false; }
 
