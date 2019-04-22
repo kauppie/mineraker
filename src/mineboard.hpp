@@ -204,8 +204,7 @@ private:
   // Does bound checking.
   void m_promote_tile(size_type idx) {
     if (m_b_inside_bounds(idx))
-      m_tiles[idx].tile_value +=
-          (m_tiles[idx].tile_value < BoardTile::TILE_8 ? 1 : 0);
+      m_tiles[idx].promote();
   }
 
   // @brief Checks that given index is inside the bounds of board size.
