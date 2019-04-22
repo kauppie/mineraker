@@ -88,7 +88,7 @@ public:
   // as mines, numbers or emptys.
   void init(size_type mine_count) {
     m_clear();
-    m_set_mines(m_seed, mine_count);
+    m_set_mines(mine_count);
     m_set_numbered_tiles();
   }
 
@@ -96,7 +96,7 @@ public:
   // as mines, numbers or emptys.
   void init() {
     m_clear();
-    m_set_mines(m_seed, m_mine_count);
+    m_set_mines(m_mine_count);
     m_set_numbered_tiles();
   }
 
@@ -116,7 +116,8 @@ public:
   }
 
   void open_from_tile(size_type idx) {
-    if (m_b_inside_bounds(idx))
+    if (m_b_inside_bounds(idx) && !m_tiles[idx].b_flagged &&
+        !m_tiles[idx].b_open)
       m_flood_open(idx);
   }
 
@@ -148,7 +149,7 @@ private:
   // evenly.
   // @note Before calling, board must be empty of mines. Otherwise mine count
   // cannot be guaranteed.
-  void m_set_mines(std::mt19937_64::result_type seed, size_type mine_count) {
+  void m_set_mines(size_type mine_count) {
     m_mine_count = std::min(mine_count, tile_count());
     if (mine_count >= tile_count()) {
       for (auto &tile : m_tiles)
@@ -156,7 +157,7 @@ private:
       return;
     }
     // Random number generator for random mine positions.
-    std::mt19937_64 rng(seed);
+    std::mt19937_64 rng(m_seed);
     for (auto i = 0ull; i < mine_count; ++i) {
       auto &tile = m_tiles[rng() % tile_count()];
       // Reduce %i because the amount of mines won't change.
@@ -228,13 +229,33 @@ private:
     return 8;
   }
 
-  // @brief Takes %m_tile_neighbours_idxs as input and does bound checking for
-  // it.
+  // @brief Returns bounds checked neighbours.
   std::vector<size_type> m_tile_neighbours_bnds(size_type idx) const {
-    auto rv = m_tile_neighbours_idxs(idx);
-    for (auto i = 0ull; i < rv.size(); ++i)
-      if (!m_b_inside_bounds(rv[i]))
-        rv.erase(rv.begin() + i);
+    std::vector<size_type> rv;
+    const bool up_edge = idx >= m_width,
+               bottom_edge = idx < tile_count() - m_width;
+    if (up_edge)
+      rv.emplace_back(idx - m_width);
+    if (bottom_edge)
+      rv.emplace_back(idx + m_width);
+    // If (index isn't against the right side wall). These indexes wrap around
+    // the board to the otherside if %idx is next to the left side wall.
+    if (idx % m_width != 0) {
+      if (up_edge)
+        rv.emplace_back(idx - m_width - 1);
+      rv.emplace_back(idx - 1);
+      if (bottom_edge)
+        rv.emplace_back(idx + m_width - 1);
+    }
+    // If (index isn't against the right side wall). These indexes wrap around
+    // the board to the otherside if %idx is next to the right side wall.
+    if (idx % m_width != m_width - 1) {
+      if (up_edge)
+        rv.emplace_back(idx - m_width + 1);
+      rv.emplace_back(idx + 1);
+      if (bottom_edge)
+        rv.emplace_back(idx + m_width + 1);
+    }
     return rv;
   }
 
@@ -296,8 +317,8 @@ private:
       st_neigh.pop();
       checked_tiles[idx] = true;
       rv.emplace_back(idx);
-      for (auto n : m_tile_neighbours_idxs(idx))
-        if (m_b_inside_bounds(n) && m_tiles[n].is_empty() && !checked_tiles[n])
+      for (auto n : m_tile_neighbours_bnds(idx))
+        if (m_tiles[n].is_empty() && !checked_tiles[n])
           st_neigh.emplace(n);
     }
     return rv;
@@ -333,7 +354,10 @@ private:
   // several threads to find the solution. Connect those threads with atomic
   // value which representes current state -> is mine calculatable; when this
   // value changes to false, abort.
-  bool m_is_mine_solvable() const { return false; }
+  bool m_b_mine_solvable(size_type idx) const {
+    auto neigh_idxs = m_tile_neighbours_bnds(idx);
+    return false;
+  }
 }; // class MineBoard
 
 } // namespace rake
