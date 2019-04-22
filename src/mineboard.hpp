@@ -47,22 +47,22 @@ private:
 
 public:
   // @brief Default constructor without parameters.
-  explicit MineBoard() {}
+  MineBoard() {}
 
   // @brief Constructor with board defining parameters.
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
-  explicit MineBoard(
+  MineBoard(
       size_type width, size_type height, size_type mine_count,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
       : m_width(0), m_seed(seed), m_mine_count(0) {
     set_dimensions(width, height);
     init(mine_count);
   }
-  explicit MineBoard(const this_type &other)
+  MineBoard(const this_type &other)
       : m_tiles(other.m_tiles), m_width(other.m_width), m_seed(other.m_seed),
         m_mine_count(other.m_mine_count) {}
-  explicit MineBoard(this_type &&other)
+  MineBoard(this_type &&other) noexcept
       : m_tiles(std::move(other.m_tiles)), m_width(std::move(other.m_width)),
         m_seed(std::move(other.m_seed)),
         m_mine_count(std::move(other.m_mine_count)) {}
@@ -77,7 +77,7 @@ public:
     return *this;
   }
 
-  this_type &&operator=(this_type &&other) {
+  this_type &&operator=(this_type &&other) noexcept {
     m_tiles = std::move(other.m_tiles);
     m_width = std::move(other.m_width);
     m_seed = std::move(other.m_seed);
@@ -96,17 +96,17 @@ public:
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
-  void init(size_type mine_count) {
+  void init(size_type mine_count, size_type no_mine_idx) {
     m_clear();
-    m_set_mines(mine_count);
+    m_set_mines(mine_count, no_mine_idx);
     m_set_numbered_tiles();
   }
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
-  void init() {
+  void init(size_type no_mine_idx) {
     m_clear();
-    m_set_mines(m_mine_count);
+    m_set_mines(m_mine_count, no_mine_idx);
     m_set_numbered_tiles();
   }
 
@@ -155,25 +155,27 @@ private:
       tile.clear();
   }
 
-  // @brief Calculates mine count from given percentage and distributes them
-  // evenly.
+  // @brief Calculates mine count from given count and distributes them
+  // evenly. %no_mine_idx points to tile which won't filled by a mine.
   // @note Before calling, board must be empty of mines. Otherwise mine count
   // cannot be guaranteed.
-  void m_set_mines(size_type mine_count) {
+  void m_set_mines(size_type mine_count, size_type no_mine_idx) {
     m_mine_count = std::min(mine_count, tile_count());
     if (mine_count >= tile_count()) {
       for (auto &tile : m_tiles)
         tile.set_mine();
+      m_tiles[no_mine_idx].tile_value = BoardTile::TILE_8;
       return;
     }
     // Random number generator for random mine positions.
     std::mt19937_64 rng(m_seed);
     for (auto i = 0ull; i < mine_count; ++i) {
-      auto &tile = m_tiles[rng() % tile_count()];
+      auto idx = rng() % tile_count();
+      if (idx != no_mine_idx || !m_tiles[idx].is_mine())
+        m_tiles[idx].set_mine();
       // Reduce %i because the amount of mines won't change.
-      if (tile.is_mine())
+      else
         --i;
-      tile.set_mine();
     }
   }
 
