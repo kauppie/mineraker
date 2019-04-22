@@ -4,7 +4,7 @@
 #include <random>
 
 #include "boardtile.hpp"
-#include "sweepboard.hpp"
+#include "mineboard.hpp"
 
 namespace rake {
 

@@ -3,7 +3,7 @@
 
 #include "SDL2/SDL.h"
 
-#include "sweepboardcontroller.hpp"
+#include "mineboardcontroller.hpp"
 #include "windowmanager.hpp"
 
 namespace rake {
