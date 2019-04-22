@@ -27,9 +27,9 @@ public:
       tile.reset();
   }
 
-  void new_board() {
+  void new_board(size_type no_mine_idx) {
     m_board.m_clear();
-    m_board.init();
+    m_board.init(no_mine_idx);
   }
 
   void resize_board(size_type width, size_type height) {
