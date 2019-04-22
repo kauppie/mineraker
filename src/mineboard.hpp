@@ -44,6 +44,8 @@ private:
   friend class MineBoardController;
   // Allows formatter to access private methods and variables.
   friend class MineBoardFormat;
+  // Allows solver to access private information needed for solving the board.
+  friend class MineBoardSolver;
 
 public:
   // @brief Default constructor without parameters.
@@ -52,9 +54,8 @@ public:
   // @brief Constructor with board defining parameters.
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
-  MineBoard(
-      size_type width, size_type height, size_type mine_count,
-      std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
+  MineBoard(size_type width, size_type height, size_type mine_count,
+            std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
       : m_width(0), m_seed(seed), m_mine_count(0) {
     set_dimensions(width, height);
     init(mine_count);
@@ -149,6 +150,11 @@ public:
   }
 
 private:
+
+  size_type to_idx(size_type x, size_type y) const noexcept {
+    return y * m_width + x;
+  }
+
   // @brief Sets every tile to an empty one.
   void m_clear() {
     for (auto &tile : m_tiles)
@@ -346,18 +352,6 @@ private:
       m_tiles[i].set_open();
     return true;
   }
-
-  // @brief Returns true if the board is solvable without guessing. False
-  // otherwise.
-  // @todo Implement.
-  bool m_b_solvable() const { return false; }
-
-  // @brief worker method for m_b_solvable. Calculates if mine is position is
-  // calculatable from neighbouring numbered tiles. Allows m_b_solvable to span
-  // several threads to find the solution. Connect those threads with atomic
-  // value which representes current state -> is mine calculatable; when this
-  // value changes to false, abort.
-  bool m_b_mine_solvable(size_type idx) const { return false; }
 }; // class MineBoard
 
 } // namespace rake
