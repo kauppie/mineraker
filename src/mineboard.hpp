@@ -37,6 +37,7 @@ private:
   size_type m_width;
   // Seed for mined tile position randomization.
   std::mt19937_64::result_type m_seed;
+  // Stores the amount of mines on the board.
   size_type m_mine_count;
 
   // Adds control for the Control class. Might not be final.
@@ -52,23 +53,38 @@ public:
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
   explicit MineBoard(
-      size_type width, size_type height, double mine_fill,
-      std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
-      : m_width(0), m_seed(seed), m_mine_count(0) {
-    set_dimensions(width, height);
-    init(mine_fill);
-  }
-  // @brief Constructor with board defining parameters.
-  // Through this constructor shape of the board, it's mine count and seed for
-  // random number generator are defined.
-  explicit MineBoard(
       size_type width, size_type height, size_type mine_count,
       std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
       : m_width(0), m_seed(seed), m_mine_count(0) {
     set_dimensions(width, height);
     init(mine_count);
   }
+  explicit MineBoard(const this_type &other)
+      : m_tiles(other.m_tiles), m_width(other.m_width), m_seed(other.m_seed),
+        m_mine_count(other.m_mine_count) {}
+  explicit MineBoard(this_type &&other)
+      : m_tiles(std::move(other.m_tiles)), m_width(std::move(other.m_width)),
+        m_seed(std::move(other.m_seed)),
+        m_mine_count(std::move(other.m_mine_count)) {}
   ~MineBoard() noexcept {}
+
+  this_type &operator=(const this_type &other) {
+    m_tiles = other.m_tiles;
+    m_width = other.m_width;
+    m_seed = other.m_seed;
+    m_mine_count = other.m_mine_count;
+
+    return *this;
+  }
+
+  this_type &&operator=(this_type &&other) {
+    m_tiles = std::move(other.m_tiles);
+    m_width = std::move(other.m_width);
+    m_seed = std::move(other.m_seed);
+    m_mine_count = std::move(other.m_mine_count);
+
+    return std::move(*this);
+  }
 
   auto seed(std::mt19937_64::result_type seed) {
     auto old = m_seed;
@@ -77,12 +93,6 @@ public:
   }
 
   constexpr auto seed() const noexcept { return m_seed; }
-
-  // @brief Initializes the board with mine fill percent. Also sets tile values
-  // as mines, numbers or emptys.
-  void init(double mine_fill) {
-    init(static_cast<size_type>(mine_fill * tile_count()));
-  }
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
@@ -193,11 +203,9 @@ private:
   // @brief Adds 1 to tile's value unless it's a mine. Empty tile changes to 1.
   // Does bound checking.
   void m_promote_tile(size_type idx) {
-    if (m_b_inside_bounds(idx)) {
-      auto &tile = m_tiles[idx];
-      // Adds tile's value.
-      tile.tile_value += (tile.tile_value < BoardTile::TILE_8 ? 1 : 0);
-    }
+    if (m_b_inside_bounds(idx))
+      m_tiles[idx].tile_value +=
+          (m_tiles[idx].tile_value < BoardTile::TILE_8 ? 1 : 0);
   }
 
   // @brief Checks that given index is inside the bounds of board size.
@@ -341,23 +349,14 @@ private:
   // @brief Returns true if the board is solvable without guessing. False
   // otherwise.
   // @todo Implement.
-  bool m_b_solvable() const {
-    std::vector<size_type> mines_idx(m_mine_count);
-    for (auto i = m_next_mine(); i < tile_count(); i = m_next_mine(i + 1))
-      mines_idx.emplace_back(i);
-
-    return false;
-  }
+  bool m_b_solvable() const { return false; }
 
   // @brief worker method for m_b_solvable. Calculates if mine is position is
   // calculatable from neighbouring numbered tiles. Allows m_b_solvable to span
   // several threads to find the solution. Connect those threads with atomic
   // value which representes current state -> is mine calculatable; when this
   // value changes to false, abort.
-  bool m_b_mine_solvable(size_type idx) const {
-    auto neigh_idxs = m_tile_neighbours_bnds(idx);
-    return false;
-  }
+  bool m_b_mine_solvable(size_type idx) const { return false; }
 }; // class MineBoard
 
 } // namespace rake
