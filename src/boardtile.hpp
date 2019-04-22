@@ -16,7 +16,7 @@ public:
   using constant_type = const unsigned char;
   using value_type = unsigned char;
 
-  // Defines tile's board value. Ranges from 0 to 9. 9 represents a mine.
+  // Defines tile's board value. Ranges from 0 to 9. Number 9 represents a mine.
   value_type tile_value;
   // Defines if board tile is flagged.
   bool b_flagged : 1;
