@@ -68,6 +68,13 @@ public:
   // @brief Sets tile unflagged.
   constexpr void set_unflagged() noexcept { b_flagged = false; }
 
+  // @brief Promotes tile to a higher value. Used when determining values for
+  // non-mine positions on the board. Doesn't promote tiles valued 8 or mines.
+  void promote() noexcept {
+    if (tile_value < TILE_8)
+      ++tile_value;
+  }
+
   // @brief Clears BoardTile to have value of closed, unflagged and empty tile.
   constexpr void clear() noexcept {
     reset();
