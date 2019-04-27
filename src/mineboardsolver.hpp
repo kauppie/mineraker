@@ -1,6 +1,8 @@
-#ifndef MINEBOARDSOLVER_H
-#define MINEBOARDSOLVER_H
+#ifndef MINEBOARDSOLVER_HPP
+#define MINEBOARDSOLVER_HPP
 
+#include <algorithm>
+#include <functional>
 #include <vector>
 
 #include "mineboard.hpp"
@@ -15,52 +17,102 @@ class MineBoardSolver {
 private:
   using this_type = MineBoardSolver;
   using size_type = MineBoard::size_type;
+  using diff_type = std::ptrdiff_t;
 
-  MineBoard control;
+  MineBoard &m_board;
 
 public:
-  MineBoardSolver(const MineBoard &board) : control(board) {}
+  MineBoardSolver(MineBoard &board) : m_board(board) {}
   ~MineBoardSolver() noexcept {}
 
-  bool b_solvable(const MineBoard &board, size_type start_idx) {
-    auto idx = start_idx;
-    auto &tiles = control.m_tiles;
-    auto &tile = tiles[idx];
-    if (!tile.is_empty())
-      return false;
+  static auto common_neighbours(MineBoard &board, size_type idx1,
+                                size_type idx2) {
+    auto w = board.width();
+    std::vector<size_type> rvec;
+    auto imin = std::min(idx1, idx2), res = std::max(idx1, idx2) - imin;
+    auto &bounds_fun = board.m_b_inside_bounds;
+    auto emplace_to_vector =
+        [&rvec, &bounds_fun](std::initializer_list<size_type> init_list) {
+          for (auto iter = init_list.begin(); iter != init_list.end(); ++iter)
+            if (bounds_fun(*iter))
+              rvec.emplace_back(*iter);
+        };
 
-    auto mine_neighbours_count = [&](size_type i) {
-      size_type ret = 0;
-      for (auto j : control.m_tile_neighbours_bnds(i))
-        if (tiles[j].is_mine())
-          ++ret;
-      return ret;
-    };
+    if (res == 1) {
+      emplace_to_vector({imin - w, imin - w + 1, imin + w, imin + w + 1});
+    } else if (res == w) {
+      emplace_to_vector({imin - 1, imin + 1, imin + w - 1, imin + w + 1});
+    } else if (res == 2) {
+      emplace_to_vector({imin - w + 1, imin + 1, imin + w + 1});
+    } else if (res == 2 * w) {
+      emplace_to_vector({imin + w - 1, imin + w, imin + w + 1});
+    } else if (res == w + 1) {
+      emplace_to_vector({imin + 1, imin + w});
+    } else if (res == w - 1) {
+      emplace_to_vector({imin - 1, imin + w});
+    } else if (res == w + 2) {
+      emplace_to_vector({imin + 1, imin + w + 1});
+    } else if (res == 2 * w - 1) {
+      emplace_to_vector({imin + w - 1, imin + w});
+    } else if (res == 2 * w + 2) {
+      emplace_to_vector({imin + w + 1});
+    } else if (res == 2 * w - 2) {
+      emplace_to_vector({imin + w - 1});
+    }
+    return rvec;
+  }
 
-    auto not_opened_neighbours = [&](size_type i) {
-      std::vector<size_type> ret;
-      for (auto j : control.m_tile_neighbours_bnds(i))
-        if (!tiles[j].b_open)
-          ret.emplace_back(j);
-      return ret;
-    };
-
-    auto not_opened_flagged_neighbours = [&](size_type i) {
-      std::vector<size_type> ret;
-      for (auto j : control.m_tile_neighbours_bnds(i))
-        if (!tiles[j].b_open && !tiles[j].b_flagged)
-          ret.emplace_back(j);
-      return ret;
-    };
-
-    for (auto i = 0ull; i < tiles.size(); ++i) {
-      if (tiles[i].is_number()) {
-        auto nneighbours = not_opened_neighbours(i);
-        if (tiles[i].tile_value == nneighbours.size())
-          for (auto n : nneighbours)
-            tiles[n].set_flagged();
+  static bool b_overlap_solve(MineBoard &board) {
+    bool res = false;
+    auto &tiles = board.m_tiles;
+    for (size_type idx = 0; idx < tiles.size(); ++idx) {
+      if (tiles[idx].b_open && tiles[idx].is_number()) {
+        auto neighbrs = board.m_tile_neighbours_bnds(idx);
+        // Finds not opened neighbours of selected tile.
+        auto nobrs = [&board, &neighbrs]() {
+          std::vector<size_type> rvec;
+          for (auto i : neighbrs)
+            if (!board.m_tiles[i].b_open)
+              rvec.emplace_back(i);
+          return rvec;
+        }();
+        // Finds flagged neighbours of selected tile.
+        auto flbrs = [&board, &neighbrs]() {
+          std::vector<size_type> rvec;
+          for (auto i : neighbrs)
+            if (board.m_tiles[i].b_flagged)
+              rvec.emplace_back(i);
+          return rvec;
+        }();
+        // If tile's value equals the number of unopened neighbours, those
+        // neighbours must be mines. Board's state changes so return value is
+        // set to true.
+        if (tiles[idx].tile_value == nobrs.size()) {
+          for (auto nidx : nobrs)
+            tiles[nidx].set_flagged();
+          res = true;
+        }
+        // If tile's value equals the number of flagged neighbours, all the
+        // other neighbours must not be mines. Board's state changes so return
+        // value is set to true.
+        else if (tiles[idx].tile_value == flbrs.size()) {
+          for (auto nidx : flbrs)
+            tiles[nidx].set_open();
+          res = true;
+        }
       }
     }
+    return res;
+  }
+
+  static bool b_pattern_solve(MineBoard &board) { return false; }
+
+  static bool b_suffle_solve(MineBoard &board) { return false; }
+
+  static bool b_solve(MineBoard &board, size_type start_idx) {
+    while (b_overlap_solve(board) || b_pattern_solve(board))
+      ;
+    return b_suffle_solve(board);
   }
 }; // class MineBoardSolver
 
