@@ -58,6 +58,8 @@ public:
     if (!b_flagged)
       b_open = true;
   }
+  // @brief Opens tile. Tile is set open whether or not tile is flagged.
+  constexpr void set_open_unguarded() noexcept { b_open = true; }
   // @brief Closes tile.
   constexpr void set_closed() noexcept { b_open = false; }
   // @brief Sets tile flagged.
@@ -65,6 +67,9 @@ public:
     if (!b_open)
       b_flagged = true;
   }
+  // @brief Sets tile flagged. Tile is set flagged whether or not tile is
+  // open.
+  constexpr void set_flagged_unguarded() noexcept { b_flagged = true; }
   // @brief Sets tile unflagged.
   constexpr void set_unflagged() noexcept { b_flagged = false; }
 
