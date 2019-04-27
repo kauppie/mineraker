@@ -63,7 +63,7 @@ public:
   }
 
   static bool b_overlap_solve(MineBoard &board) {
-    bool res = false;
+    bool b_state_changed = false;
     auto &tiles = board.m_tiles;
     for (size_type idx = 0; idx < tiles.size(); ++idx) {
       if (tiles[idx].b_open && tiles[idx].is_number()) {
@@ -85,24 +85,30 @@ public:
           return rvec;
         }();
         // If tile's value equals the number of unopened neighbours, those
-        // neighbours must be mines. Board's state changes so return value is
-        // set to true.
+        // neighbours must be mines. If neighbour is unflagged, it will be
+        // flagged.
         if (tiles[idx].tile_value == nobrs.size()) {
-          for (auto nidx : nobrs)
-            tiles[nidx].set_flagged();
-          res = true;
+          for (auto nidx : nobrs) {
+            if (!tiles[nidx].b_flagged) {
+              tiles[nidx].set_flagged_unguarded();
+              b_state_changed = true;
+            }
+          }
         }
         // If tile's value equals the number of flagged neighbours, all the
-        // other neighbours must not be mines. Board's state changes so return
-        // value is set to true.
+        // other neighbours must not be mines. If neighbour is closed, it will
+        // be opened.
         else if (tiles[idx].tile_value == flbrs.size()) {
-          for (auto nidx : flbrs)
-            tiles[nidx].set_open();
-          res = true;
+          for (auto nidx : flbrs) {
+            if (!tiles[nidx].b_open) {
+              tiles[nidx].set_open_unguarded();
+              b_state_changed = true;
+            }
+          }
         }
       }
     }
-    return res;
+    return b_state_changed;
   }
 
   static bool b_pattern_solve(MineBoard &board) { return false; }
