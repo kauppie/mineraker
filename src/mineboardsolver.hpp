@@ -26,10 +26,9 @@ public:
   ~MineBoardSolver() noexcept {}
 
   // @brief Finds common neighbours between two tiles.
-  static auto common_neighbours(MineBoard &board, size_type idx1,
-                                     size_type idx2) {
-    auto neighbrs1 = board.m_tile_neighbours_bnds(idx1);
-    auto neighbrs2 = board.m_tile_neighbours_bnds(idx2);
+  auto common_neighbours(size_type idx1, size_type idx2) {
+    auto neighbrs1 = m_board.m_tile_neighbours_bnds(idx1);
+    auto neighbrs2 = m_board.m_tile_neighbours_bnds(idx2);
     decltype(neighbrs1) common_nbrs;
     std::sort(neighbrs1.begin(), neighbrs1.end());
     std::sort(neighbrs2.begin(), neighbrs2.end());
@@ -38,28 +37,22 @@ public:
     return common_nbrs;
   }
 
-  static bool b_overlap_solve(MineBoard &board) {
+  bool b_overlap_solve() {
     bool b_state_changed = false;
-    auto &tiles = board.m_tiles;
+    auto &tiles = m_board.m_tiles;
     for (size_type idx = 0; idx < tiles.size(); ++idx) {
       if (tiles[idx].b_open && tiles[idx].is_number()) {
-        auto neighbrs = board.m_tile_neighbours_bnds(idx);
-        // Finds not opened neighbours of selected tile.
-        auto nobrs = [&board, &neighbrs]() {
-          std::vector<size_type> rvec;
-          for (auto i : neighbrs)
-            if (!board.m_tiles[i].b_open)
-              rvec.emplace_back(i);
-          return rvec;
-        }();
-        // Finds flagged neighbours of selected tile.
-        auto flbrs = [&board, &neighbrs]() {
-          std::vector<size_type> rvec;
-          for (auto i : neighbrs)
-            if (board.m_tiles[i].b_flagged)
-              rvec.emplace_back(i);
-          return rvec;
-        }();
+        auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+        std::vector<size_type> nobrs;
+        std::vector<size_type> flbrs;
+        for (auto i : neighbrs) {
+          // Finds not opened neighbours of selected tile.
+          if (!m_board.m_tiles[i].b_open)
+            nobrs.emplace_back(i);
+          // Finds flagged neighbours of selected tile.
+          if (m_board.m_tiles[i].b_flagged)
+            flbrs.emplace_back(i);
+        }
         // If tile's value equals the number of unopened neighbours, those
         // neighbours must be mines. If neighbour is unflagged, it will be
         // flagged.
@@ -87,14 +80,19 @@ public:
     return b_state_changed;
   }
 
-  static bool b_pattern_solve(MineBoard &board) { return false; }
+  bool b_pattern_solve() { return false; }
 
-  static bool b_suffle_solve(MineBoard &board) { return false; }
+  // @brief Solves from tiles which share neighbours. Opens Those tiles'
+  // neighbours which CANNOT be mines.
+  bool b_common_solve() { return false; }
 
-  static bool b_solve(MineBoard &board, size_type start_idx) {
-    while (b_overlap_solve(board) || b_pattern_solve(board))
+  bool b_suffle_solve() { return false; }
+
+  bool b_solve(size_type start_idx) {
+    while (b_overlap_solve() || b_pattern_solve() ||
+           b_common_solve())
       ;
-    return b_suffle_solve(board);
+    return b_suffle_solve();
   }
 }; // class MineBoardSolver
 
