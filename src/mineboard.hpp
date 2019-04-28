@@ -247,7 +247,7 @@ private:
   // @brief Returns bounds checked neighbours.
   std::vector<size_type> m_tile_neighbours_bnds(size_type idx) const {
     std::vector<size_type> rv;
-    const bool up_edge = idx >= m_width,
+    const bool up_edge = idx >= m_width && idx < tile_count(),
                bottom_edge = idx < tile_count() - m_width;
     if (up_edge)
       rv.emplace_back(idx - m_width);
