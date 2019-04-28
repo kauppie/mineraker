@@ -2,6 +2,7 @@
 #define MINEBOARD_HPP
 
 #include <functional>
+#include <limits>
 #include <random>
 #include <stack>
 #include <utility>
@@ -219,14 +220,14 @@ private:
   bool m_b_inside_bounds(size_type index) const { return index < tile_count(); }
 
   // @brief Returns next tile index with the type of mine starting from optional
-  // index. If mine not found until the end of the array, returns ULLONG_MAX
-  // (0xffffffffffffffff).
+  // index. If mine not found until the end of the array, returns the maximum
+  // value of size_type.
   size_type m_next_mine(size_type st_idx = 0) const {
     for (; st_idx < tile_count(); ++st_idx) {
       if (m_tiles[st_idx].is_mine())
         return st_idx;
     }
-    return 0xffffffffffffffff;
+    return std::numeric_limits<size_type>::max();
   }
 
   // @brief Returns the amount of neighbours tile has inside bounds of the
