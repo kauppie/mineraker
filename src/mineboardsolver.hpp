@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "mineboard.hpp"
 #include "boardtile.hpp"
+#include "mineboard.hpp"
 
 namespace rake {
 
@@ -17,7 +17,7 @@ class MineBoardSolver {
 private:
   using this_type = MineBoardSolver;
   using size_type = MineBoard::size_type;
-  using diff_type = std::ptrdiff_t;
+  using difference_type = std::ptrdiff_t;
 
   MineBoard &m_board;
 
@@ -25,41 +25,17 @@ public:
   MineBoardSolver(MineBoard &board) : m_board(board) {}
   ~MineBoardSolver() noexcept {}
 
+  // @brief Finds common neighbours between two tiles.
   static auto common_neighbours(MineBoard &board, size_type idx1,
-                                size_type idx2) {
-    auto w = board.width();
-    std::vector<size_type> rvec;
-    auto imin = std::min(idx1, idx2), res = std::max(idx1, idx2) - imin;
-    auto &bounds_fun = board.m_b_inside_bounds;
-    auto emplace_to_vector =
-        [&rvec, &bounds_fun](std::initializer_list<size_type> init_list) {
-          for (auto iter = init_list.begin(); iter != init_list.end(); ++iter)
-            if (bounds_fun(*iter))
-              rvec.emplace_back(*iter);
-        };
-
-    if (res == 1) {
-      emplace_to_vector({imin - w, imin - w + 1, imin + w, imin + w + 1});
-    } else if (res == w) {
-      emplace_to_vector({imin - 1, imin + 1, imin + w - 1, imin + w + 1});
-    } else if (res == 2) {
-      emplace_to_vector({imin - w + 1, imin + 1, imin + w + 1});
-    } else if (res == 2 * w) {
-      emplace_to_vector({imin + w - 1, imin + w, imin + w + 1});
-    } else if (res == w + 1) {
-      emplace_to_vector({imin + 1, imin + w});
-    } else if (res == w - 1) {
-      emplace_to_vector({imin - 1, imin + w});
-    } else if (res == w + 2) {
-      emplace_to_vector({imin + 1, imin + w + 1});
-    } else if (res == 2 * w - 1) {
-      emplace_to_vector({imin + w - 1, imin + w});
-    } else if (res == 2 * w + 2) {
-      emplace_to_vector({imin + w + 1});
-    } else if (res == 2 * w - 2) {
-      emplace_to_vector({imin + w - 1});
-    }
-    return rvec;
+                                     size_type idx2) {
+    auto neighbrs1 = board.m_tile_neighbours_bnds(idx1);
+    auto neighbrs2 = board.m_tile_neighbours_bnds(idx2);
+    decltype(neighbrs1) common_nbrs;
+    std::sort(neighbrs1.begin(), neighbrs1.end());
+    std::sort(neighbrs2.begin(), neighbrs2.end());
+    std::set_intersection(neighbrs1.begin(), neighbrs1.end(), neighbrs2.begin(),
+                          neighbrs2.end(), std::back_inserter(common_nbrs));
+    return common_nbrs;
   }
 
   static bool b_overlap_solve(MineBoard &board) {
