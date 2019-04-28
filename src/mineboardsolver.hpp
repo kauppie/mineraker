@@ -2,6 +2,7 @@
 #define MINEBOARDSOLVER_HPP
 
 #include <algorithm>
+#include <limits>
 #include <vector>
 
 #include "boardtile.hpp"
@@ -37,7 +38,7 @@ public:
   // @brief Finds common neighbours between two tiles.
   auto common_neighbours(size_type idx1, size_type idx2) {
     return common_idxs(m_board.m_tile_neighbours_bnds(idx1),
-                  m_board.m_tile_neighbours_bnds(idx2));
+                       m_board.m_tile_neighbours_bnds(idx2));
   }
 
   bool b_overlap_solve() {
@@ -87,7 +88,17 @@ public:
     auto &tiles = m_board.m_tiles;
     for (size_type idx = 0; idx < tiles.size(); ++idx) {
       if (tiles[idx].b_open && tiles[idx].is_number()) {
-        common_neighbours(1, 2).size();
+        auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+        size_type idx2 = std::numeric_limits<size_type>::max();
+        for (auto n : neighbrs) {
+          if (tiles[n].b_open && tiles[n].tile_value == 1) {
+            // @todo For every 2, 1 tile pair.
+          }
+        }
+        auto imin = std::min(idx, idx2), imax = std::max(idx, idx2);
+        if (imax % m_board.width() != 0) {
+          // @todo
+        }
       }
     }
     return false;
