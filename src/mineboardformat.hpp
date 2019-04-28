@@ -14,12 +14,12 @@ public:
   MineBoardFormat() {}
   ~MineBoardFormat() {}
 
-  static std::string to_string(const MineBoard &sb) {
+  static std::string format(const MineBoard &sb) {
     std::stringstream ss;
     ss << "[" << sb.mine_count() << "][" << sb.seed() << "];";
     return ss.str();
   }
-  static MineBoard from_string(std::string_view view) { return MineBoard{}; }
+  static MineBoard parse(std::string_view view) { return MineBoard{}; }
 };
 
 } // namespace rake
