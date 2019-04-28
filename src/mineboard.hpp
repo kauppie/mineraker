@@ -23,7 +23,7 @@ namespace rake {
  *   MineBoard to contain board data.
  */
 class MineBoard {
-private:
+public:
   using size_type = std::size_t;
   using tile_type = BoardTile;
   using vector_type = std::vector<tile_type>;
@@ -31,6 +31,7 @@ private:
 
   static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
+private:
   // Default container for the board tiles.
   vector_type m_tiles;
   // Variable for storing the board width.
@@ -150,7 +151,6 @@ public:
   }
 
 private:
-
   size_type to_idx(size_type x, size_type y) const noexcept {
     return y * m_width + x;
   }
