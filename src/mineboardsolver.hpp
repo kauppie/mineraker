@@ -2,10 +2,10 @@
 #define MINEBOARDSOLVER_HPP
 
 #include <algorithm>
-#include <functional>
 #include <vector>
 
 #include "mineboard.hpp"
+#include "boardtile.hpp"
 
 namespace rake {
 
