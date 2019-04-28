@@ -25,16 +25,19 @@ public:
   MineBoardSolver(MineBoard &board) : m_board(board) {}
   ~MineBoardSolver() noexcept {}
 
+  auto common_idxs(std::vector<size_type> vec1, std::vector<size_type> vec2) {
+    std::vector<size_type> rvec;
+    std::sort(vec1.begin(), vec1.end());
+    std::sort(vec2.begin(), vec2.end());
+    std::set_intersection(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(),
+                          std::back_inserter(rvec));
+    return rvec;
+  }
+
   // @brief Finds common neighbours between two tiles.
   auto common_neighbours(size_type idx1, size_type idx2) {
-    auto neighbrs1 = m_board.m_tile_neighbours_bnds(idx1);
-    auto neighbrs2 = m_board.m_tile_neighbours_bnds(idx2);
-    decltype(neighbrs1) common_nbrs;
-    std::sort(neighbrs1.begin(), neighbrs1.end());
-    std::sort(neighbrs2.begin(), neighbrs2.end());
-    std::set_intersection(neighbrs1.begin(), neighbrs1.end(), neighbrs2.begin(),
-                          neighbrs2.end(), std::back_inserter(common_nbrs));
-    return common_nbrs;
+    return common_idxs(m_board.m_tile_neighbours_bnds(idx1),
+                  m_board.m_tile_neighbours_bnds(idx2));
   }
 
   bool b_overlap_solve() {
@@ -80,7 +83,15 @@ public:
     return b_state_changed;
   }
 
-  bool b_pattern_solve() { return false; }
+  bool b_pattern_solve() {
+    auto &tiles = m_board.m_tiles;
+    for (size_type idx = 0; idx < tiles.size(); ++idx) {
+      if (tiles[idx].b_open && tiles[idx].is_number()) {
+        common_neighbours(1, 2).size();
+      }
+    }
+    return false;
+  }
 
   // @brief Solves from tiles which share neighbours. Opens Those tiles'
   // neighbours which CANNOT be mines.
@@ -89,8 +100,7 @@ public:
   bool b_suffle_solve() { return false; }
 
   bool b_solve(size_type start_idx) {
-    while (b_overlap_solve() || b_pattern_solve() ||
-           b_common_solve())
+    while (b_overlap_solve() || b_pattern_solve() || b_common_solve())
       ;
     return b_suffle_solve();
   }
