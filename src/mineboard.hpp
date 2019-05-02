@@ -3,12 +3,14 @@
 
 #include <functional>
 #include <limits>
+#include <optional>
 #include <random>
 #include <stack>
 #include <utility>
 #include <vector>
 
 #include "boardtile.hpp"
+#include "mineraker.hpp"
 
 namespace rake {
 
@@ -25,18 +27,37 @@ namespace rake {
  */
 class MineBoard {
 public:
-  using size_type = std::size_t;
   using tile_type = BoardTile;
-  using vector_type = std::vector<tile_type>;
   using this_type = MineBoard;
+
+  struct pos_type_t {
+    diff_type x, y;
+
+    pos_type_t operator+(pos_type_t other) const noexcept {
+      return {x + other.x, y + other.y};
+    }
+    pos_type_t operator-(pos_type_t other) const noexcept {
+      return {x - other.x, y - other.y};
+    }
+    void operator+=(pos_type_t other) noexcept {
+      x += other.x;
+      y += other.y;
+    }
+    void operator-=(pos_type_t other) noexcept {
+      x -= other.x;
+      y -= other.y;
+    }
+  };
 
   static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
 private:
   // Default container for the board tiles.
-  vector_type m_tiles;
+  std::vector<tile_type> m_tiles;
   // Variable for storing the board width.
   size_type m_width;
+  // Variable for storing the board height.
+  size_type m_height;
   // Seed for mined tile position randomization.
   std::mt19937_64::result_type m_seed;
   // Stores the amount of mines on the board.
@@ -63,17 +84,19 @@ public:
     init(mine_count);
   }
   MineBoard(const this_type &other)
-      : m_tiles(other.m_tiles), m_width(other.m_width), m_seed(other.m_seed),
+      : m_tiles(other.m_tiles), m_width(other.m_width),
+        m_height(other.m_height), m_seed(other.m_seed),
         m_mine_count(other.m_mine_count) {}
   MineBoard(this_type &&other) noexcept
       : m_tiles(std::move(other.m_tiles)), m_width(std::move(other.m_width)),
-        m_seed(std::move(other.m_seed)),
+        m_height(std::move(other.m_height)), m_seed(std::move(other.m_seed)),
         m_mine_count(std::move(other.m_mine_count)) {}
   ~MineBoard() noexcept {}
 
   this_type &operator=(const this_type &other) {
     m_tiles = other.m_tiles;
     m_width = other.m_width;
+    m_height = other.m_height;
     m_seed = other.m_seed;
     m_mine_count = other.m_mine_count;
 
@@ -83,13 +106,14 @@ public:
   this_type &&operator=(this_type &&other) noexcept {
     m_tiles = std::move(other.m_tiles);
     m_width = std::move(other.m_width);
+    m_height = std::move(other.m_height);
     m_seed = std::move(other.m_seed);
     m_mine_count = std::move(other.m_mine_count);
 
     return std::move(*this);
   }
 
-  auto seed(std::mt19937_64::result_type seed) {
+  auto seed(std::mt19937_64::result_type seed) noexcept {
     auto old = m_seed;
     m_seed = seed;
     return old;
@@ -116,16 +140,9 @@ public:
   // @brief Sets board dimensions and resizes the container.
   void set_dimensions(size_type width, size_type height) {
     m_width = width;
-    m_tiles.resize(width * height);
+    m_height = height;
+    m_tiles.resize(m_width * m_height);
     m_tiles.shrink_to_fit();
-  }
-
-  // @brief Sets tile as a mine or not in given position/index.
-  // Does bound checking and ignores out-of-bounds conditions.
-  void set_mines(size_type idx, bool b_mine = true) {
-    if (m_b_inside_bounds(idx))
-      m_tiles[idx].tile_value =
-          (b_mine ? BoardTile::TILE_MINE : BoardTile::TILE_EMPTY);
   }
 
   void open_from_tile(size_type idx) {
@@ -138,22 +155,44 @@ public:
   constexpr auto width() const noexcept { return m_width; }
 
   // @brief Returns the height of the board.
-  size_type height() const noexcept { return tile_count() / width(); }
+  constexpr auto height() const noexcept { return m_height; }
 
   // @brief Returns the amount mines on the board.
   constexpr auto mine_count() const noexcept { return m_mine_count; }
 
   // @brief Returns the amount of tiles on the board.
-  size_type tile_count() const noexcept { return m_tiles.size(); }
+  constexpr auto tile_count() const noexcept { return width() * height(); }
 
   // @brief Returns the amount of area that is filled by mines.
-  double fill_percent() const noexcept {
+  constexpr double fill_percent() const noexcept {
     return static_cast<double>(mine_count()) / tile_count();
   }
 
 private:
-  size_type to_idx(size_type x, size_type y) const noexcept {
-    return y * m_width + x;
+public:
+  // @brief Converts pos_type_t to single index.
+  constexpr size_type m_to_idx(pos_type_t pos) const noexcept {
+    return pos.y * m_width + pos.x;
+  }
+
+  // @brief Converts single index to pos_type_t.
+  constexpr pos_type_t m_to_pos(size_type idx) const noexcept {
+    return {static_cast<diff_type>(idx % m_width),
+            static_cast<diff_type>(idx / m_width)};
+  }
+
+  void m_set_tile(BoardTile::value_type val, pos_type_t pos) noexcept {
+    if (m_b_inside_bounds(pos)) {
+      m_tiles[m_to_idx(pos)].tile_value = val;
+    }
+  }
+
+  std::optional<std::reference_wrapper<BoardTile>>
+  m_get_tile(pos_type_t pos) noexcept {
+    if (m_b_inside_bounds(pos))
+      return std::optional<std::reference_wrapper<BoardTile>>{
+          m_tiles[m_to_idx(pos)]};
+    return std::nullopt;
   }
 
   // @brief Sets every tile to an empty one.
@@ -172,13 +211,14 @@ private:
       for (auto &tile : m_tiles)
         tile.set_mine();
       m_tiles[no_mine_idx].tile_value = BoardTile::TILE_8;
+      --m_mine_count;
       return;
     }
     // Random number generator for random mine positions.
     std::mt19937_64 rng(m_seed);
-    for (auto i = 0ull; i < mine_count; ++i) {
+    for (size_type i = 0; i < mine_count; ++i) {
       auto idx = rng() % tile_count();
-      if (idx != no_mine_idx || !m_tiles[idx].is_mine())
+      if (idx != no_mine_idx && !m_tiles[idx].is_mine())
         m_tiles[idx].set_mine();
       // Reduce %i because the amount of mines won't change.
       else
@@ -216,8 +256,19 @@ private:
       m_tiles[idx].promote();
   }
 
+  void m_promote_tile(pos_type_t pos) {
+    auto tile = m_get_tile(pos);
+    if (tile)
+      tile.value().get().promote();
+  }
+
   // @brief Checks that given index is inside the bounds of board size.
-  bool m_b_inside_bounds(size_type index) const { return index < tile_count(); }
+  bool m_b_inside_bounds(size_type index) const noexcept {
+    return index < tile_count();
+  }
+  constexpr bool m_b_inside_bounds(pos_type_t pos) const noexcept {
+    return pos.x >= 0 && pos.x < m_width && pos.y >= 0 && pos.y < m_height;
+  }
 
   // @brief Returns next tile index with the type of mine starting from optional
   // index. If mine not found until the end of the array, returns the maximum
@@ -234,7 +285,7 @@ private:
   // board.
   size_type m_neighbour_count(size_type idx) const {
     bool vertical_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
-         horizontal_edge = idx < m_width || idx >= height() * (m_width - 1);
+         horizontal_edge = idx < m_width || idx >= m_height * (m_width - 1);
     // If is against both vertically and horizontally going walls.
     if (vertical_edge && horizontal_edge)
       return 3;
@@ -275,20 +326,29 @@ private:
     return rv;
   }
 
+  std::vector<size_type> m_tile_neighbours_bnds(pos_type_t pos) const {
+    std::vector<size_type> rv;
+    const auto neigh_unbnds = m_tile_neighbours_unbnds(pos);
+    for (const auto &unbnd : neigh_unbnds)
+      if (m_b_inside_bounds(unbnd))
+        rv.emplace_back(m_to_idx(unbnd));
+    return rv;
+  }
+
   // @brief Takes a vector of neighbour indexes and does bound checking for
   // the contained indexes. Returns said vector as reference.
   std::vector<size_type> &
-  m_tile_neighbours_bnds(std::vector<size_type> &neighbr_idxs) const {
-    for (auto i = 0ull; i < neighbr_idxs.size(); ++i)
-      if (!m_b_inside_bounds(neighbr_idxs[i]))
-        neighbr_idxs.erase(neighbr_idxs.begin() + i);
-    return neighbr_idxs;
+  m_tile_neighbours_bnds(std::vector<size_type> &neighbr_unbnds) const {
+    for (size_type i = 0; i < neighbr_unbnds.size(); ++i)
+      if (!m_b_inside_bounds(neighbr_unbnds[i]))
+        neighbr_unbnds.erase(neighbr_unbnds.begin() + i);
+    return neighbr_unbnds;
   }
 
   // @brief Returns a vector containing index's neighbours. Doesn't do bound
   // checking; check %m_tile_neighbours_bnds for that.
   // @note Returns as a vector so that the output is directly editable in size.
-  std::vector<size_type> m_tile_neighbours_idxs(size_type idx) const {
+  std::vector<size_type> m_tile_neighbours_unbnds(size_type idx) const {
     std::vector<size_type> rv;
     rv.emplace_back(idx - m_width);
     rv.emplace_back(idx + m_width);
@@ -307,6 +367,15 @@ private:
       rv.emplace_back(idx + m_width + 1);
     }
     return rv;
+  }
+
+  std::array<pos_type_t, TILE_NEIGHBOUR_COUNT>
+  m_tile_neighbours_unbnds(pos_type_t pos) const {
+    std::array<pos_type_t, TILE_NEIGHBOUR_COUNT> ra = {
+        {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}}};
+    for (auto &p : ra)
+      p += pos;
+    return ra;
   }
 
   void m_flood_open(size_type idx) {
