@@ -1,6 +1,8 @@
 #ifndef BOARDTILE_HPP
 #define BOARDTILE_HPP
 
+#include "mineraker.hpp"
+
 namespace rake {
 /**
  * @brief class supporting activity and reducing complexity of MineBoard.

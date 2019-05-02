@@ -5,14 +5,13 @@
 
 #include "boardtile.hpp"
 #include "mineboard.hpp"
+#include "mineraker.hpp"
 
 namespace rake {
 
 class MineBoardController {
 private:
   MineBoard m_board;
-
-  using size_type = MineBoard::size_type;
 
 public:
   MineBoardController() {}

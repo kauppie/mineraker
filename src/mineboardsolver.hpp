@@ -7,6 +7,7 @@
 
 #include "boardtile.hpp"
 #include "mineboard.hpp"
+#include "mineraker.hpp"
 
 namespace rake {
 
@@ -17,8 +18,6 @@ namespace rake {
 class MineBoardSolver {
 private:
   using this_type = MineBoardSolver;
-  using size_type = MineBoard::size_type;
-  using difference_type = std::ptrdiff_t;
 
   MineBoard &m_board;
 

@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "mineboard.hpp"
+#include "mineraker.hpp"
 
 namespace rake {
 

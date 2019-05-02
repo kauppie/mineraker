@@ -4,6 +4,7 @@
 #include "SDL2/SDL.h"
 
 #include "mineboardcontroller.hpp"
+#include "mineraker.hpp"
 #include "windowmanager.hpp"
 
 namespace rake {
