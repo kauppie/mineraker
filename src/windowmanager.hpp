@@ -5,14 +5,11 @@
 #include <string_view>
 
 #include "SDL2/SDL.h"
+#include "mineraker.hpp"
 
 namespace rake {
 
 class WindowManager {
-public:
-  using size_type = unsigned long;
-  using diff_type = long;
-
 private:
   SDL_Window *m_window;
   SDL_Renderer *m_renderer;

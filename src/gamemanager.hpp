@@ -10,9 +10,6 @@
 namespace rake {
 
 class GameManager {
-public:
-  using size_type = std::size_t;
-
 private:
   MineBoardController m_sbcontrol;
   WindowManager m_window;
