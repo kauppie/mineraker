@@ -25,22 +25,38 @@ public:
   MineBoardSolver(MineBoard &board) : m_board(board) {}
   ~MineBoardSolver() noexcept {}
 
-  auto common_idxs(std::vector<size_type> vec1, std::vector<size_type> vec2) {
-    std::vector<size_type> rvec;
+  static auto common_idxs(const std::vector<size_type> &vec1,
+                          const std::vector<size_type> &vec2) {
+    std::vector<size_type> rv;
     std::sort(vec1.begin(), vec1.end());
     std::sort(vec2.begin(), vec2.end());
     std::set_intersection(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(),
-                          std::back_inserter(rvec));
-    return rvec;
+                          std::back_inserter(rv));
+    return rv;
   }
 
-  // @brief Finds common neighbours between two tiles.
+  static auto common_poss(const std::vector<MineBoard::pos_type_t> &vec1,
+                          const std::vector<MineBoard::pos_type_t> &vec2) {
+    std::vector<MineBoard::pos_type_t> rv;
+    std::set_intersection(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(),
+                          std::back_inserter(rv),
+                          MineBoard::pos_type_t::compare);
+    return rv;
+  }
+
+  // @brief Finds common neighbours between two tiles using indexes.
   auto common_neighbours(size_type idx1, size_type idx2) {
     return common_idxs(m_board.m_tile_neighbours_bnds(idx1),
                        m_board.m_tile_neighbours_bnds(idx2));
   }
 
-  bool b_overlap_solve() {
+  auto common_neighbours(MineBoard::pos_type_t pos1,
+                         MineBoard::pos_type_t pos2) {
+    return common_poss(m_board.m_tile_neighbours_bnds(pos1),
+                       m_board.m_tile_neighbours_bnds(pos2));
+  }
+
+  auto b_overlap_solve() {
     bool b_state_changed = false;
     auto &tiles = m_board.m_tiles;
     for (size_type idx = 0; idx < tiles.size(); ++idx) {
@@ -83,7 +99,7 @@ public:
     return b_state_changed;
   }
 
-  bool b_pattern_solve() {
+  auto b_pattern_solve() {
     auto &tiles = m_board.m_tiles;
     for (size_type idx = 0; idx < tiles.size(); ++idx) {
       if (tiles[idx].b_open && tiles[idx].is_number()) {
@@ -105,11 +121,11 @@ public:
 
   // @brief Solves from tiles which share neighbours. Opens Those tiles'
   // neighbours which CANNOT be mines.
-  bool b_common_solve() { return false; }
+  auto b_common_solve() { return false; }
 
-  bool b_suffle_solve() { return false; }
+  auto b_suffle_solve() { return false; }
 
-  bool b_solve(size_type start_idx) {
+  auto b_solve(size_type start_idx) {
     while (b_overlap_solve() || b_pattern_solve() || b_common_solve())
       ;
     return b_suffle_solve();
