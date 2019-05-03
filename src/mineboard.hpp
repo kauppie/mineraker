@@ -33,19 +33,47 @@ public:
   struct pos_type_t {
     diff_type x, y;
 
-    pos_type_t operator+(pos_type_t other) const noexcept {
+    // @brief Addition.
+    constexpr pos_type_t operator+(pos_type_t other) const noexcept {
       return {x + other.x, y + other.y};
     }
-    pos_type_t operator-(pos_type_t other) const noexcept {
+
+    // @brief Substraction.
+    constexpr pos_type_t operator-(pos_type_t other) const noexcept {
       return {x - other.x, y - other.y};
     }
-    void operator+=(pos_type_t other) noexcept {
+
+    // @brief Unary plus.
+    constexpr pos_type_t operator+() const noexcept {
+      return *this;
+    }
+
+    // @brief Unary minus.
+    constexpr pos_type_t operator-() const noexcept {
+      return {-x, -y};
+    }
+
+    // @brief Addition assignment operator implementation.
+    constexpr void operator+=(pos_type_t other) noexcept {
       x += other.x;
       y += other.y;
     }
-    void operator-=(pos_type_t other) noexcept {
+
+    // @brief Substraction assignment operator implementation.
+    constexpr void operator-=(pos_type_t other) noexcept {
       x -= other.x;
       y -= other.y;
+    }
+
+    // @brief Compares this and other position types. First y is compared and if
+    // not equal, return. Otherwise return comparison between x.
+    // @note Enable constexpr when lambdas can return constexpr.
+    static int compare(pos_type_t lhs, pos_type_t rhs) noexcept {
+      auto comp = [](diff_type v1, diff_type v2) -> int {
+        return (v1 < v2 ? -1 : (v2 < v1 ? 1 : 0));
+      };
+      auto ycomp = comp(lhs.y, rhs.y);
+      return (ycomp != 0 ? ycomp : comp(lhs.x, rhs.x));
     }
   };
 
@@ -263,7 +291,7 @@ public:
   }
 
   // @brief Checks that given index is inside the bounds of board size.
-  bool m_b_inside_bounds(size_type index) const noexcept {
+  constexpr bool m_b_inside_bounds(size_type index) const noexcept {
     return index < tile_count();
   }
   constexpr bool m_b_inside_bounds(pos_type_t pos) const noexcept {
@@ -273,7 +301,7 @@ public:
   // @brief Returns next tile index with the type of mine starting from optional
   // index. If mine not found until the end of the array, returns the maximum
   // value of size_type.
-  size_type m_next_mine(size_type st_idx = 0) const {
+  constexpr size_type m_next_mine(size_type st_idx = 0) const noexcept {
     for (; st_idx < tile_count(); ++st_idx) {
       if (m_tiles[st_idx].is_mine())
         return st_idx;
@@ -283,7 +311,7 @@ public:
 
   // @brief Returns the amount of neighbours tile has inside bounds of the
   // board.
-  size_type m_neighbour_count(size_type idx) const {
+  constexpr size_type m_neighbour_count(size_type idx) const noexcept {
     bool vertical_edge = idx % m_width == 0 || idx % m_width == m_width - 1,
          horizontal_edge = idx < m_width || idx >= m_height * (m_width - 1);
     // If is against both vertically and horizontally going walls.
