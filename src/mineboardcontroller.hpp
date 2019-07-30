@@ -36,7 +36,7 @@ public:
   }
 
 private:
-}; // class MineBoardController
+};
 
 } // namespace rake
 

@@ -5,26 +5,25 @@
 
 namespace rake {
 /**
- * @brief class supporting activity and reducing complexity of MineBoard.
  * Contains data of single tile placed on a board. Such information is: is the
  * tile open, is flag set on it and it's holding value which is either empty
  * represented by 0, number between 1-8 or mine represented by 9.
- *
- * Consumes 2 bytes compiled with g++. This could be size optimized to 1 byte,
- * but there could be greater loss when decoding wanted results.
  */
 class BoardTile {
 public:
-  using constant_type = const unsigned char;
+  using this_type = BoardTile;
   using value_type = unsigned char;
+  using constant_type = const value_type;
 
+private:
   // Defines tile's board value. Ranges from 0 to 9. Number 9 represents a mine.
-  value_type tile_value;
+  value_type tile_value : 6;
   // Defines if board tile is flagged.
   bool b_flagged : 1;
   // Defines if board tile is opened.
   bool b_open : 1;
 
+public:
   static constant_type TILE_EMPTY = 0, TILE_1 = 1, TILE_2 = 2, TILE_3 = 3,
                        TILE_4 = 4, TILE_5 = 5, TILE_6 = 6, TILE_7 = 7,
                        TILE_8 = 8, TILE_MINE = 9;
@@ -40,16 +39,36 @@ public:
   // constructs variables from them.
   constexpr BoardTile(value_type tile_value, bool is_flagged, bool is_open)
       : tile_value(tile_value), b_flagged(is_flagged), b_open(is_open) {}
+  // @brief Copy constructor.
+  constexpr BoardTile(const this_type &other)
+      : tile_value(other.tile_value), b_flagged(other.b_flagged),
+        b_open(other.b_open) {}
+  // @brief Move constructor. Is deleted for usage of bit field member
+  // variables.
+  // constexpr BoardTile(this_type &&other) = delete;
   // @brief Deconstructor.
   ~BoardTile() noexcept {}
 
+  // @brief Sets %tile_value to %new_value and returns %tile_value before
+  // setting.
+  auto value(value_type new_value) noexcept {
+    auto tmp = tile_value;
+    tile_value = new_value;
+    return tmp;
+  }
+  // @brief Returns %tile_value.
+  constexpr auto value() const noexcept { return tile_value; }
+  // @brief Returns true when tile is flagged. False otherwise.
+  constexpr auto is_flagged() const noexcept { return b_flagged; }
+  // @brief Returns true when tile is open. False otherwise.
+  constexpr auto is_open() const noexcept { return b_open; }
   // @brief Returns true when tile is a mine. False otherwise.
   constexpr bool is_mine() const noexcept { return tile_value == TILE_MINE; }
   // @brief Returns true when tile is empty. False otherwise.
   constexpr bool is_empty() const noexcept { return tile_value == TILE_EMPTY; }
   // @brief Returns true when tile is neither empty or a mine. False otherwise.
   constexpr bool is_number() const noexcept {
-    return !is_mine() && !is_empty();
+    return !(is_mine() || is_empty());
   }
   // @brief Sets tile to a mine.
   constexpr void set_mine() noexcept { tile_value = TILE_MINE; }
@@ -75,9 +94,16 @@ public:
   // @brief Sets tile unflagged.
   constexpr void set_unflagged() noexcept { b_flagged = false; }
 
+  constexpr void toggle_flag() noexcept {
+    if (b_flagged)
+      set_unflagged();
+    else
+      set_flagged();
+  }
+
   // @brief Promotes tile to a higher value. Used when determining values for
   // non-mine positions on the board. Doesn't promote tiles valued 8 or mines.
-  void promote() noexcept {
+  constexpr void promote() noexcept {
     if (tile_value < TILE_8)
       ++tile_value;
   }
@@ -94,7 +120,7 @@ public:
     set_closed();
     set_unflagged();
   }
-}; // class BoardTile
+};
 
 } // namespace rake
 
