@@ -77,10 +77,10 @@ public:
         std::vector<size_type> flbrs;
         for (auto i : neighbrs) {
           // Finds not opened neighbours of selected tile.
-          if (!m_board.m_tiles[i].is_open())
+          if (!tiles[i].is_open())
             nobrs.emplace_back(i);
           // Finds flagged neighbours of selected tile.
-          if (m_board.m_tiles[i].is_flagged())
+          if (tiles[i].is_flagged())
             flbrs.emplace_back(i);
         }
         // If tile's value equals the number of unopened neighbours, those
@@ -98,8 +98,8 @@ public:
         // other neighbours must not be mines. If neighbour is closed, it will
         // be opened.
         else if (tiles[idx].value() == flbrs.size()) {
-          for (auto nidx : flbrs) {
-            if (!tiles[nidx].is_open()) {
+          for (auto nidx : neighbrs) {
+            if (!(tiles[nidx].is_open() || tiles[nidx].is_flagged())) {
               // For performance reasons unguarded version of the set_open
               // method is used.
               tiles[nidx].set_open_unguarded();

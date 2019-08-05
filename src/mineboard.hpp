@@ -94,11 +94,13 @@ private:
   State m_state;
 
   // Adds control for the Control class. Might not be final.
-  friend class MineBoardController;
+  friend class GameManager;
   // Allows formatter to access private methods and variables.
   friend class MineBoardFormat;
   // Allows solver to access private information needed for solving the board.
   friend class MineBoardSolver;
+
+  friend class MineBoardController; // REMOVE
 
 public:
   // @brief Default constructor without parameters.
@@ -109,9 +111,9 @@ public:
   // @brief Constructor with board defining parameters.
   // Through this constructor shape of the board, it's mine count and seed for
   // random number generator are defined.
-  MineBoard(size_type width, size_type height, size_type mine_count,
+  MineBoard(size_type width, size_type height,
             std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
-      : m_width(0), m_seed(seed), m_mine_count(mine_count),
+      : m_width(0), m_height(0), m_seed(seed), m_mine_count(0),
         m_state(UNINITIALIZED) {
     set_dimensions(width, height);
   }
@@ -157,41 +159,52 @@ public:
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
-  void init(size_type no_mine_idx, size_type mine_count) {
+  void init(size_type start_idx, size_type mine_count) {
     m_clear();
-    m_set_mines(mine_count, no_mine_idx);
+    m_set_mines(mine_count, start_idx);
     m_set_numbered_tiles();
+    m_state = READY;
   }
 
   // @brief Initializes the board with mine fill percent. Also sets tile values
   // as mines, numbers or emptys.
-  void init(size_type no_mine_idx) {
+  void init(size_type start_idx) {
     m_clear();
-    m_set_mines(m_mine_count, no_mine_idx);
+    m_set_mines(m_mine_count, start_idx);
     m_set_numbered_tiles();
+    m_state = READY;
+  }
+
+  void reset() {
+    for (auto &tile : m_tiles)
+      tile.reset();
   }
 
   // @brief Sets board dimensions and resizes the container.
   void set_dimensions(size_type width, size_type height) {
     width = std::max(width, static_cast<size_type>(1));
     height = std::max(height, static_cast<size_type>(1));
-    m_width = width;
-    m_height = height;
     try {
-      m_tiles.reserve(m_width * m_height);
-      m_tiles.resize(m_width * m_height);
+      m_tiles.reserve(width * height);
+      m_tiles.resize(width * height);
+      m_width = width;
+      m_height = height;
     } catch (std::exception &e) {
-      std::cout << "Error: Couldn't reserve memory for mineboard.\n";
-      throw e;
+      std::cerr << "\nError: Couldn't reserve memory for mineboard: "
+                << e.what();
     }
   }
 
   void open_from_tile(size_type idx) {
     if (m_state == UNINITIALIZED)
       init(idx);
-    if (m_b_inside_bounds(idx) && !m_tiles[idx].is_flagged() &&
-        !m_tiles[idx].is_open())
+    if (m_b_inside_bounds(idx) && !m_tiles[idx].is_flagged())
       m_flood_open(idx);
+  }
+
+  void flag_from_tile(size_type idx) {
+    if (m_b_inside_bounds(idx))
+      m_tiles[idx].toggle_flag();
   }
 
   // @brief Returns the width of the board.
@@ -243,12 +256,24 @@ private:
       tile.value().get().value(val);
   }
 
+  void m_set_tile_ptr(tile_type::value_type val, pos_type_t pos) noexcept {
+    auto tile = m_get_tile_ptr(pos);
+    if (tile != nullptr)
+      tile->value(val);
+  }
+
   std::optional<std::reference_wrapper<tile_type>>
   m_get_tile(pos_type_t pos) noexcept {
     if (m_b_inside_bounds(pos))
       return std::optional<std::reference_wrapper<tile_type>>{
           m_tiles[m_to_idx(pos)]};
     return std::nullopt;
+  }
+
+  tile_type *m_get_tile_ptr(pos_type_t pos) {
+    if (m_b_inside_bounds(pos))
+      return &m_tiles[m_to_idx(pos)];
+    return nullptr;
   }
 
   // @brief Sets every tile to an empty one.
@@ -258,24 +283,32 @@ private:
   }
 
   // @brief Calculates mine count from given count and distributes them
-  // evenly. %no_mine_idx points to tile which won't filled by a mine.
+  // evenly. %start_idx points to tile which won't filled by a mine.
   // @note Before calling, board must be empty of mines. Otherwise mine count
   // cannot be guaranteed.
-  void m_set_mines(size_type mine_count, size_type no_mine_idx) {
+  void m_set_mines(size_type mine_count, size_type start_idx) {
     m_mine_count = std::min(mine_count, tile_count());
     if (mine_count >= tile_count()) {
       for (auto &tile : m_tiles)
         tile.set_mine();
-      m_tiles[no_mine_idx].value(tile_type::TILE_8);
+      m_tiles[start_idx].value(tile_type::TILE_8);
       --m_mine_count;
       return;
     }
     // Random number generator for random mine positions.
     std::mt19937_64 rng(m_seed);
+    auto empty_tiles = m_tile_neighbours_bnds(start_idx);
+    empty_tiles.emplace_back(start_idx);
     for (size_type i = 0; i < mine_count; ++i) {
       auto idx = rng() % tile_count();
-      if (idx != no_mine_idx && !m_tiles[idx].is_mine())
-        m_tiles[idx].set_mine();
+      if (!m_tiles[idx].is_mine()) {
+        bool set_mine = true;
+        for (auto empty_idx : empty_tiles)
+          if (idx == empty_idx)
+            set_mine = false;
+        if (set_mine)
+          m_tiles[idx].set_mine();
+      }
       // Reduce %i because the amount of mines won't change.
       else
         --i;
@@ -331,6 +364,12 @@ private:
       tile.value().get().promote();
   }
 
+  void m_promote_tile_ptr(pos_type_t pos) {
+    auto tile = m_get_tile_ptr(pos);
+    if (tile != nullptr)
+      tile->promote();
+  }
+
   // @brief Checks that given index is inside the bounds of board size.
   constexpr bool m_b_inside_bounds(size_type index) const noexcept {
     return index < tile_count();
@@ -358,8 +397,9 @@ private:
     for (; pos_type_t::compare(pos, {m_width, m_height}) == -1;
          (pos.x % m_width != m_width - 1 ? pos += {1, 0}
                                          : pos += {-m_width + 1, 1})) {
-      if (m_get_tile(pos) && m_get_tile(pos).value().get().is_mine())
-        return pos;
+      if (m_get_tile(pos))
+        if (m_get_tile(pos).value().get().is_mine())
+          return pos;
     }
     return {std::numeric_limits<diff_type>::max(),
             std::numeric_limits<diff_type>::max()};
@@ -423,12 +463,10 @@ private:
 
   // @brief Takes a vector of neighbour indexes and does bound checking for
   // the contained indexes. Returns said vector as reference.
-  std::vector<size_type> &
-  m_tile_neighbours_bnds(std::vector<size_type> &neighbr_unbnds) const {
+  void m_tile_neighbours_bnds(std::vector<size_type> &neighbr_unbnds) const {
     for (size_type i = 0; i < neighbr_unbnds.size(); ++i)
       if (!m_b_inside_bounds(neighbr_unbnds[i]))
         neighbr_unbnds.erase(neighbr_unbnds.begin() + i);
-    return neighbr_unbnds;
   }
 
   // @brief Returns a vector containing index's neighbours. Doesn't do bound
@@ -483,32 +521,31 @@ private:
     std::stack<size_type> st_neigh;
     // Stores which tiles are already run by the loop.
     std::vector<bool> checked_tiles(tile_count(), false);
+    auto current_idx = idx;
 
-    st_neigh.emplace(idx);
+    st_neigh.emplace(current_idx);
     while (!st_neigh.empty()) {
-      idx = st_neigh.top();
+      current_idx = st_neigh.top();
       st_neigh.pop();
-      checked_tiles[idx] = true;
-      rv.emplace_back(idx);
-      for (auto n : m_tile_neighbours_bnds(idx))
+      checked_tiles[current_idx] = true;
+      rv.emplace_back(current_idx);
+      for (auto n : m_tile_neighbours_bnds(current_idx))
         if (m_tiles[n].is_empty() && !checked_tiles[n])
           st_neigh.emplace(n);
     }
     return rv;
   }
 
-  // @brief Opens neighbours of a tile at the given index.
-  bool m_open_neighbours(size_type idx) {
-    return m_open_neighbours(m_tile_neighbours_bnds(idx));
-  }
-
-  // @brief Takes vector of indexes and opens tiles represented by them.
-  bool m_open_neighbours(const std::vector<size_type> &neighbrs) {
-    if (neighbrs.size() == 0)
-      return false;
-    for (auto i : neighbrs)
-      m_tiles[i].set_open();
-    return true;
+  // @brief Takes vector of indexes and opens tiles' neighbouring tiles.
+  void m_open_neighbours(const std::vector<size_type> &tiles) {
+    std::vector<size_type> to_open_tiles;
+    for (auto idx : tiles) {
+      auto neighbrs_bnds = m_tile_neighbours_bnds(idx);
+      to_open_tiles.insert(to_open_tiles.end(), neighbrs_bnds.begin(),
+                           neighbrs_bnds.end());
+    }
+    for (auto idx : to_open_tiles)
+      m_tiles[idx].set_open();
   }
 };
 

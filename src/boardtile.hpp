@@ -74,7 +74,7 @@ public:
   constexpr void set_mine() noexcept { tile_value = TILE_MINE; }
   // @brief Sets tile to empty tile.
   constexpr void set_empty() noexcept { tile_value = TILE_EMPTY; }
-  // @brief Opens tile.
+  // @brief Opens tile if tile is not flagged.
   constexpr void set_open() noexcept {
     if (!b_flagged)
       b_open = true;
@@ -83,7 +83,7 @@ public:
   constexpr void set_open_unguarded() noexcept { b_open = true; }
   // @brief Closes tile.
   constexpr void set_closed() noexcept { b_open = false; }
-  // @brief Sets tile flagged.
+  // @brief Sets tile flagged if tile is not open.
   constexpr void set_flagged() noexcept {
     if (!b_open)
       b_flagged = true;
@@ -94,6 +94,8 @@ public:
   // @brief Sets tile unflagged.
   constexpr void set_unflagged() noexcept { b_flagged = false; }
 
+  // @brief Toggles whether tile is flagged or not. Flagging is conditional in
+  // the sense that opened tiles won't be flagged.
   constexpr void toggle_flag() noexcept {
     if (b_flagged)
       set_unflagged();

@@ -1,3 +1,4 @@
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <math.h>
@@ -5,34 +6,71 @@
 
 #include <SDL2/SDL.h>
 
+#include <boost/locale.hpp>
+
 #include "gamemanager.hpp"
 #include "mineboard.hpp"
 #include "mineboardcontroller.hpp"
 #include "mineboardformat.hpp"
 #include "mineraker.hpp"
+#include "texture.hpp"
 #include "windowmanager.hpp"
 
 int main(int argc, char *argv[]) {
 
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER |
-               SDL_INIT_VIDEO) != 0) {
-    std::cerr << "Error: " << SDL_GetError() << "\nPress any key to exit.";
+  if (!rake::init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER |
+                      SDL_INIT_VIDEO,
+                  IMG_INIT_PNG)) {
+    std::cerr
+        << "\nInitialization error; can't continue... Press any key to exit. ";
     std::cin.get();
     return 1;
   }
-  // SDL_Quit is called at program exit.
-  atexit(SDL_Quit);
+  // Register program-wide quit to be called on exit as SDL and IMG
+  // initializations have been called.
+  atexit(rake::quit);
 
   bool quit = false;
   SDL_Event e;
 
-  rake::WindowManager wm{800, 480, "test title"};
+  rake::WindowManager wm{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT,
+                         "Mineraker, version .5"};
+  rake::MineBoard mb{16, 16, 691548};
+  rake::GameManager gm{&wm, &mb};
 
-  SDL_SetRenderDrawColor(wm.renderer_ptr(), 255, 0, 0, 255);
-  SDL_RenderClear(wm.renderer_ptr());
-  SDL_RenderPresent(wm.renderer_ptr());
+  mb.init(50, 40);
+  gm.open_from(50);
 
-  std::cerr << wm.state;
+  int mx = 0, my = 0;
+  bool mouseDown;
+  auto tilex = rake::SCREEN_WIDTH / mb.width(),
+       tiley = rake::SCREEN_HEIGHT / mb.height();
 
+  while (!quit) {
+    while (SDL_PollEvent(&e) != 0) {
+      if (e.type == SDL_QUIT)
+        quit = true;
+      if (e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONDOWN ||
+          e.type == SDL_MOUSEBUTTONUP) {
+        SDL_GetMouseState(&mx, &my);
+
+        if (e.type == SDL_MOUSEBUTTONDOWN)
+          mouseDown = false;
+        else if (e.type == SDL_MOUSEBUTTONUP)
+          mouseDown = true;
+      }
+    }
+
+    if (mouseDown) {
+      mouseDown = false;
+      auto idx = (my / tiley) * mb.width() + (mx / tilex);
+      std::cerr << "\n" << idx;
+      gm.open_from(idx);
+    }
+
+    SDL_RenderClear(wm);
+    gm.render();
+    SDL_RenderPresent(wm);
+  }
   return 0;
 }
