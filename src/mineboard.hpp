@@ -75,7 +75,14 @@ public:
     }
   };
 
-  enum State { UNINITIALIZED = -1, READY = 0, ERROR = 1, GAMEOVER = 10 };
+  enum State {
+    ERROR,
+    UNINITIALIZED,
+    FIRST_MOVE,
+    NEXT_MOVE,
+    GAME_WIN,
+    GAME_LOSE,
+  };
 
   static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
@@ -105,26 +112,17 @@ private:
 public:
   // @brief Default constructor without parameters.
   MineBoard()
-      : m_width(1), m_height(1), m_seed(std::mt19937_64::default_seed),
-        m_mine_count(0), m_state(UNINITIALIZED) {}
-
-  // @brief Constructor with board defining parameters.
-  // Through this constructor shape of the board, it's mine count and seed for
-  // random number generator are defined.
-  MineBoard(size_type width, size_type height,
-            std::mt19937_64::result_type seed = std::mt19937_64::default_seed)
-      : m_width(0), m_height(0), m_seed(seed), m_mine_count(0),
-        m_state(UNINITIALIZED) {
-    set_dimensions(width, height);
-  }
+      : m_width(0), m_height(0), m_seed(0), m_mine_count(0),
+        m_state(UNINITIALIZED) {}
   MineBoard(const this_type &other)
       : m_tiles(other.m_tiles), m_width(other.m_width),
         m_height(other.m_height), m_seed(other.m_seed),
-        m_mine_count(other.m_mine_count) {}
+        m_mine_count(other.m_mine_count), m_state(other.m_state) {}
   MineBoard(this_type &&other) noexcept
       : m_tiles(std::move(other.m_tiles)), m_width(std::move(other.m_width)),
         m_height(std::move(other.m_height)), m_seed(std::move(other.m_seed)),
-        m_mine_count(std::move(other.m_mine_count)) {}
+        m_mine_count(std::move(other.m_mine_count)),
+        m_state(std::move(other.m_state)) {}
   ~MineBoard() noexcept {}
 
   this_type &operator=(const this_type &other) {
@@ -147,43 +145,65 @@ public:
     return std::move(*this);
   }
 
-  auto seed(std::mt19937_64::result_type seed) noexcept {
-    auto old = m_seed;
+  void init(size_type width, size_type height,
+            std::mt19937_64::result_type seed, size_type mine_count) {
+    resize(width, height);
     m_seed = seed;
-    return old;
+    m_mine_count = mine_count;
+    m_state = FIRST_MOVE;
   }
 
-  constexpr auto seed() const noexcept { return m_seed; }
-
-  constexpr auto state() const noexcept { return m_state; }
-
-  // @brief Initializes the board with mine fill percent. Also sets tile values
-  // as mines, numbers or emptys.
-  void init(size_type start_idx, size_type mine_count) {
-    m_clear();
-    m_set_mines(mine_count, start_idx);
-    m_set_numbered_tiles();
-    m_state = READY;
+  void open_tile(size_type idx) {
+    if (m_state == UNINITIALIZED) {
+      std::cerr << "\nMineBoard uninitialized!";
+      return;
+    }
+    if (!m_b_inside_bounds(idx) || !m_tiles[idx].is_flagged())
+      return;
+    switch (m_state) {
+    case NEXT_MOVE:
+      m_on_next_move(idx);
+      break;
+    case FIRST_MOVE:
+      m_on_first_move(idx);
+      break;
+    default:
+      break;
+    }
   }
 
-  // @brief Initializes the board with mine fill percent. Also sets tile values
-  // as mines, numbers or emptys.
-  void init(size_type start_idx) {
+  void m_on_next_move(size_type idx) {
+    if (m_tiles[idx].is_mine()) {
+      m_tiles[idx].set_open();
+      m_state = GAME_LOSE;
+    } else
+      m_flood_open(idx);
+    if (m_state != GAME_LOSE &&
+        tile_count() - mine_count() == open_tiles_count())
+      m_state = GAME_WIN;
+  }
+
+  void m_on_first_move(size_type idx) {
     m_clear();
-    m_set_mines(m_mine_count, start_idx);
+    m_set_mines(m_mine_count, idx);
     m_set_numbered_tiles();
-    m_state = READY;
+    m_flood_open(idx);
+    m_state = NEXT_MOVE;
+  }
+
+  void flag_tile(size_type idx) {
+    if (m_b_inside_bounds(idx))
+      m_tiles[idx].toggle_flag();
   }
 
   void reset() {
     for (auto &tile : m_tiles)
       tile.reset();
+    // m_state = FIRST_MOVE;
   }
 
   // @brief Sets board dimensions and resizes the container.
-  void set_dimensions(size_type width, size_type height) {
-    width = std::max(width, static_cast<size_type>(1));
-    height = std::max(height, static_cast<size_type>(1));
+  void resize(size_type width, size_type height) {
     try {
       m_tiles.resize(width * height);
       m_width = width;
@@ -194,36 +214,29 @@ public:
     }
   }
 
-  void open_from_tile(size_type idx) {
-    if (m_state == UNINITIALIZED)
-      init(idx);
-    if (m_b_inside_bounds(idx) && !m_tiles[idx].is_flagged())
-      m_flood_open(idx);
+  auto seed(std::mt19937_64::result_type seed) noexcept {
+    auto old = m_seed;
+    m_seed = seed;
+    return old;
   }
 
-  void flag_from_tile(size_type idx) {
-    if (m_b_inside_bounds(idx))
-      m_tiles[idx].toggle_flag();
-  }
+  constexpr auto seed() const noexcept { return m_seed; }
+
+  constexpr auto state() const noexcept { return m_state; }
 
   // @brief Returns the width of the board.
-  constexpr auto width() const noexcept { return m_width; }
+  constexpr size_type width() const noexcept { return m_width; }
 
   // @brief Returns the height of the board.
-  constexpr auto height() const noexcept { return m_height; }
+  constexpr size_type height() const noexcept { return m_height; }
 
   // @brief Returns the amount mines on the board.
-  constexpr auto mine_count() const noexcept { return m_mine_count; }
+  constexpr size_type mine_count() const noexcept { return m_mine_count; }
 
   // @brief Returns the amount of tiles on the board.
-  constexpr auto tile_count() const noexcept { return m_width * m_height; }
+  constexpr size_type tile_count() const noexcept { return m_width * m_height; }
 
-  // @brief Returns the amount of area that is filled by mines.
-  constexpr double fill_percent() const noexcept {
-    return static_cast<double>(mine_count()) / tile_count();
-  }
-
-  auto open_tiles_count() const noexcept {
+  size_type open_tiles_count() const noexcept {
     size_type open_tiles = 0;
     for (auto &tile : m_tiles)
       if (tile.is_open())
@@ -243,8 +256,7 @@ private:
   }
 
   // @brief Converts single index to pos_type_t.
-  constexpr pos_type_t m_to_pos(size_type idx) const noexcept {
-    // @note %m_width is not allowed 0 -> noexcept.
+  constexpr pos_type_t m_to_pos(size_type idx) const {
     return {static_cast<diff_type>(idx % m_width),
             static_cast<diff_type>(idx / m_width)};
   }
@@ -286,29 +298,32 @@ private:
   // @note Before calling, board must be empty of mines. Otherwise mine count
   // cannot be guaranteed.
   void m_set_mines(size_type mine_count, size_type start_idx) {
-    m_mine_count = std::min(mine_count, tile_count());
-    if (mine_count >= tile_count()) {
-      for (auto &tile : m_tiles)
-        tile.set_mine();
-      m_tiles[start_idx].value(tile_type::TILE_8);
-      --m_mine_count;
-      return;
-    }
+    // Make sure that mine count doesn't exceed board limits nor affect starting
+    // area.
+    m_mine_count =
+        std::min(mine_count, tile_count() - m_neighbour_count(start_idx) - 1);
+
     // Random number generator for random mine positions.
-    std::mt19937_64 rng(m_seed);
+    std::mt19937_64 rng(m_seed + m_width + m_height);
+
+    // Vector of tiles that won't be filled with mines.
     auto empty_tiles = m_tile_neighbours_bnds(start_idx);
     empty_tiles.emplace_back(start_idx);
-    for (size_type i = 0; i < mine_count; ++i) {
+
+    // Loop until mines have been laid on the board.
+    for (size_type i = 0; i < m_mine_count; ++i) {
+      // Random index for placing a mine.
       auto idx = rng() % tile_count();
       if (!m_tiles[idx].is_mine()) {
         bool set_mine = true;
+        // Ensure that %idx isn't one of the tiles not to be filled.
         for (auto empty_idx : empty_tiles)
           if (idx == empty_idx)
             set_mine = false;
         if (set_mine)
           m_tiles[idx].set_mine();
       }
-      // Reduce %i because the amount of mines won't change.
+      // Reduce %i because the amount of mines haven't changed.
       else
         --i;
     }
@@ -390,8 +405,8 @@ private:
 
   // @brief Returns next tile position with the type of mine starting from
   // given position. If mine not found until the end of the array, returns
-  // %pos_type_t with types' decltype(pos_type_t::x) and
-  // decltype(pos_type_t::y) max values as parameters.
+  // %pos_type_t with types' %diff_type: x and
+  // %diff_type: y max values as parameters.
   pos_type_t m_next_mine(pos_type_t pos) noexcept {
     for (; pos_type_t::compare(pos, {m_width, m_height}) == -1;
          (pos.x % m_width != m_width - 1 ? pos += {1, 0}
@@ -545,7 +560,7 @@ private:
     for (auto idx : to_open_tiles)
       m_tiles[idx].set_open();
   }
-};
+}; // namespace rake
 
 } // namespace rake
 

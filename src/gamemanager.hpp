@@ -16,22 +16,31 @@
 namespace rake {
 
 /**
- * Links game states, %MineBoard object and window rendering in a single class
- * with simple to call methods.
+ * Literally manages game from windows to board events. Does texture association
+ * and clipping.
  */
 class GameManager {
 public:
-  GameManager(WindowManager *window, MineBoard *board)
-      : m_window(window), m_board(board) {}
+  GameManager() : m_window(nullptr), m_board(nullptr) {}
   ~GameManager() {}
 
-  void open_from(int mouse_x, int mouse_y) {
-    // m_board->open_from_tile((my / tiley) * mb.width() + (mx / tilex));
+  void init(WindowManager *windowmanager, MineBoard *mineboard,
+            Texture *tile_texture) {
+    m_window = windowmanager;
+    m_board = mineboard;
+    m_tiles_texture = tile_texture;
   }
-  void flag_from(size_type n_tile) { m_board->flag_from_tile(n_tile); }
+
+  void open_from(int mouse_x, int mouse_y) {
+    // m_board->open_tile((my / tiley) * mb.width() + (mx / tilex));
+  }
+  void flag_from(size_type n_tile) { m_board->flag_tile(n_tile); }
   void render() {
-    if (m_window == nullptr || m_board == nullptr)
-      throw "Error: window and/or board objects unassigned to gamemanager.";
+    if (m_window == nullptr || m_board == nullptr ||
+        m_tiles_texture == nullptr) {
+      std::cerr << "\nError: Incomplete Gamemanager.";
+      return;
+    }
     auto width = m_window->width(), height = m_window->height();
     auto b_width = m_board->width(), b_height = m_board->height();
 
@@ -40,7 +49,8 @@ public:
 
     // Change to texture object inside GameManager class.
     Texture texture(m_window->renderer(), "img/medium.png");
-    auto clip_width = texture.width() / 4, clip_height = texture.height() / 3;
+    auto clip_width = m_tiles_texture->width() / 4,
+         clip_height = m_tiles_texture->height() / 3;
 
     std::array<SDL_Rect, 12ul> tiles_from_texture = {
         SDL_Rect{clip_width, 0, clip_width, clip_height},
@@ -70,14 +80,14 @@ public:
       dst_rect.x = i % b_width * tile_width;
       dst_rect.y = i / b_width * tile_height;
 
-      texture.render(m_window->renderer(), &clip, &dst_rect);
+      m_tiles_texture->render(m_window->renderer(), &clip, &dst_rect);
     }
   }
 
 private:
   WindowManager *m_window;
   MineBoard *m_board;
-  Texture m_tiles_texture;
+  Texture *m_tiles_texture;
 };
 
 } // namespace rake

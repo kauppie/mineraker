@@ -33,6 +33,7 @@ void quit() {
 }
 
 static const int SCREEN_WIDTH = 640, SCREEN_HEIGHT = 480;
+static const int TEXTURE_WIDTH_COUNT = 4, TEXTURE_HEIGHT_COUNT = 3;
 
 } // namespace rake
 

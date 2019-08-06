@@ -13,21 +13,27 @@
 namespace rake {
 
 class Texture {
+  using this_type = Texture;
+
 public:
+  Texture(const this_type &) = delete;
+  Texture(this_type &&) = delete;
+
   // Constructor which uses %texture_from_file.
   explicit Texture(SDL_Renderer *renderer, const std::string &path)
-      : m_texture(nullptr), m_surface(nullptr) {
+      : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {
     texture_from_file(renderer, path);
   }
 
   // Constructor which uses %surface_from_file.
   explicit Texture(const std::string &path)
-      : m_texture(nullptr), m_surface(nullptr) {
+      : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {
     surface_from_file(path);
   }
 
   // Default constructor. Nullifies pointers.
-  explicit Texture() : m_texture(nullptr), m_surface(nullptr) {}
+  explicit Texture()
+      : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {}
   ~Texture() noexcept { free(); }
 
   operator auto() const { return m_texture; }
