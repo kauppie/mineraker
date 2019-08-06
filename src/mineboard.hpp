@@ -185,7 +185,6 @@ public:
     width = std::max(width, static_cast<size_type>(1));
     height = std::max(height, static_cast<size_type>(1));
     try {
-      m_tiles.reserve(width * height);
       m_tiles.resize(width * height);
       m_width = width;
       m_height = height;
@@ -397,9 +396,8 @@ private:
     for (; pos_type_t::compare(pos, {m_width, m_height}) == -1;
          (pos.x % m_width != m_width - 1 ? pos += {1, 0}
                                          : pos += {-m_width + 1, 1})) {
-      if (m_get_tile(pos))
-        if (m_get_tile(pos).value().get().is_mine())
-          return pos;
+      if (m_get_tile_ptr(pos)->is_mine())
+        return pos;
     }
     return {std::numeric_limits<diff_type>::max(),
             std::numeric_limits<diff_type>::max()};

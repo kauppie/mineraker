@@ -25,8 +25,10 @@ public:
       : m_window(window), m_board(board) {}
   ~GameManager() {}
 
-  void open_from(size_type n_tile) { m_board->open_from_tile(n_tile); }
-  void flag_from(size_type n_tile);
+  void open_from(int mouse_x, int mouse_y) {
+    // m_board->open_from_tile((my / tiley) * mb.width() + (mx / tilex));
+  }
+  void flag_from(size_type n_tile) { m_board->flag_from_tile(n_tile); }
   void render() {
     if (m_window == nullptr || m_board == nullptr)
       throw "Error: window and/or board objects unassigned to gamemanager.";
@@ -75,6 +77,7 @@ public:
 private:
   WindowManager *m_window;
   MineBoard *m_board;
+  Texture m_tiles_texture;
 };
 
 } // namespace rake

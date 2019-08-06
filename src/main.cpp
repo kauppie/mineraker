@@ -1,12 +1,7 @@
-#include <array>
 #include <chrono>
 #include <iostream>
-#include <math.h>
-#include <random>
 
 #include <SDL2/SDL.h>
-
-#include <boost/locale.hpp>
 
 #include "gamemanager.hpp"
 #include "mineboard.hpp"
@@ -34,15 +29,17 @@ int main(int argc, char *argv[]) {
   SDL_Event e;
 
   rake::WindowManager wm{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT,
-                         "Mineraker, version .5"};
-  rake::MineBoard mb{16, 16, 691548};
+                         "Mineraker, version .5",
+                         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE};
+  rake::WindowManager wm1{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT, "copy",
+                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE};
+  rake::MineBoard mb{16, 16, 123};
   rake::GameManager gm{&wm, &mb};
 
   mb.init(50, 40);
-  gm.open_from(50);
+  // gm.open_from(50);
 
   int mx = 0, my = 0;
-  bool mouseDown;
   auto tilex = rake::SCREEN_WIDTH / mb.width(),
        tiley = rake::SCREEN_HEIGHT / mb.height();
 
@@ -50,24 +47,9 @@ int main(int argc, char *argv[]) {
     while (SDL_PollEvent(&e) != 0) {
       if (e.type == SDL_QUIT)
         quit = true;
-      if (e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONDOWN ||
-          e.type == SDL_MOUSEBUTTONUP) {
-        SDL_GetMouseState(&mx, &my);
-
-        if (e.type == SDL_MOUSEBUTTONDOWN)
-          mouseDown = false;
-        else if (e.type == SDL_MOUSEBUTTONUP)
-          mouseDown = true;
-      }
+      wm.handle_event(&e);
+      wm1.handle_event(&e);
     }
-
-    if (mouseDown) {
-      mouseDown = false;
-      auto idx = (my / tiley) * mb.width() + (mx / tilex);
-      std::cerr << "\n" << idx;
-      gm.open_from(idx);
-    }
-
     SDL_RenderClear(wm);
     gm.render();
     SDL_RenderPresent(wm);
