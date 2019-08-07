@@ -23,6 +23,9 @@ public:
   // Deconstructor. Frees allocated resources.
   ~WindowManager() { free(); }
 
+  operator SDL_Window *() const { return m_window; }
+  operator SDL_Renderer *() const { return m_renderer; }
+
   void init(int width, int height, const std::string &title,
             uint32_t window_flags) {
     // Set default values for all member variables.
@@ -30,15 +33,16 @@ public:
     // Free resources before constructing new ones.
     free();
     m_window =
-        SDL_CreateWindow(m_title.c_str(), SDL_WINDOWPOS_UNDEFINED,
+        SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED,
                          SDL_WINDOWPOS_UNDEFINED, width, height, window_flags);
     if (m_window == nullptr) {
       std::cerr << "\nWindow could not be created! SDL_Error: "
                 << SDL_GetError();
       state = NO_WINDOW;
     } else {
+      m_title = title;
       m_width = width;
-      m_height = m_height;
+      m_height = height;
       m_window_id = SDL_GetWindowID(m_window);
       m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
 
@@ -78,16 +82,13 @@ public:
         SDL_GetWindowSize(m_window, &m_width, &m_height);
         break;
       case SDL_WINDOWEVENT_CLOSE:
-        free();
+        free(); // Prefer to set window hidden.
         break;
       default:
         break;
       }
     }
   }
-
-  operator SDL_Window *() const { return m_window; }
-  operator SDL_Renderer *() const { return m_renderer; }
 
   auto window() const { return m_window; }
   auto renderer() const { return m_renderer; }

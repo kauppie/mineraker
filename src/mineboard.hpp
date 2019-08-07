@@ -107,8 +107,6 @@ private:
   // Allows solver to access private information needed for solving the board.
   friend class MineBoardSolver;
 
-  friend class MineBoardController; // REMOVE
-
 public:
   // @brief Default constructor without parameters.
   MineBoard()
@@ -148,18 +146,18 @@ public:
   void init(size_type width, size_type height,
             std::mt19937_64::result_type seed, size_type mine_count) {
     resize(width, height);
+    m_clear();
     m_seed = seed;
     m_mine_count = mine_count;
     m_state = FIRST_MOVE;
   }
 
-  void open_tile(size_type idx) {
+  State open_tile(size_type idx) {
     if (m_state == UNINITIALIZED) {
       std::cerr << "\nMineBoard uninitialized!";
-      return;
-    }
-    if (!m_b_inside_bounds(idx) || !m_tiles[idx].is_flagged())
-      return;
+      return m_state;
+    } else if (!m_b_inside_bounds(idx) || m_tiles[idx].is_flagged())
+      return m_state;
     switch (m_state) {
     case NEXT_MOVE:
       m_on_next_move(idx);
@@ -170,21 +168,16 @@ public:
     default:
       break;
     }
+    return m_state;
   }
 
   void m_on_next_move(size_type idx) {
-    if (m_tiles[idx].is_mine()) {
-      m_tiles[idx].set_open();
-      m_state = GAME_LOSE;
-    } else
-      m_flood_open(idx);
-    if (m_state != GAME_LOSE &&
-        tile_count() - mine_count() == open_tiles_count())
+    m_flood_open(idx);
+    if (tile_count() - mine_count() == open_tiles_count())
       m_state = GAME_WIN;
   }
 
   void m_on_first_move(size_type idx) {
-    m_clear();
     m_set_mines(m_mine_count, idx);
     m_set_numbered_tiles();
     m_flood_open(idx);
@@ -196,11 +189,7 @@ public:
       m_tiles[idx].toggle_flag();
   }
 
-  void reset() {
-    for (auto &tile : m_tiles)
-      tile.reset();
-    // m_state = FIRST_MOVE;
-  }
+  void reset() { m_state = UNINITIALIZED; }
 
   // @brief Sets board dimensions and resizes the container.
   void resize(size_type width, size_type height) {
@@ -317,9 +306,12 @@ private:
       if (!m_tiles[idx].is_mine()) {
         bool set_mine = true;
         // Ensure that %idx isn't one of the tiles not to be filled.
-        for (auto empty_idx : empty_tiles)
-          if (idx == empty_idx)
+        for (auto empty_idx : empty_tiles) {
+          if (idx == empty_idx) {
             set_mine = false;
+            --i;
+          }
+        }
         if (set_mine)
           m_tiles[idx].set_mine();
       }
@@ -518,8 +510,21 @@ private:
   }
 
   void m_flood_open(size_type idx) {
-    m_tiles[idx].set_open();
-    m_open_neighbours(m_empty_tiles_empty_area(idx));
+    if (m_tiles[idx].is_open()) {
+      auto neighbrs = m_tile_neighbours_bnds(idx);
+      size_type flagged_neighbrs = 0;
+      for (auto i : neighbrs)
+        if (m_tiles[i].is_flagged())
+          ++flagged_neighbrs;
+      if (flagged_neighbrs >= m_tiles[idx].value())
+        for (auto i : neighbrs) {
+          m_open_single_tile(i);
+          m_open_neighbours(m_empty_tiles_empty_area(i));
+        }
+    } else {
+      m_open_single_tile(idx);
+      m_open_neighbours(m_empty_tiles_empty_area(idx));
+    }
   }
 
   // @brief Returns vector of empty tiles that are neighbouring each other
@@ -558,8 +563,17 @@ private:
                            neighbrs_bnds.end());
     }
     for (auto idx : to_open_tiles)
-      m_tiles[idx].set_open();
+      m_open_single_tile(idx);
   }
+
+  void m_open_single_tile(size_type idx) {
+    if (m_tiles[idx].is_flagged())
+      return;
+    else if (m_tiles[idx].is_mine())
+      m_state = GAME_LOSE;
+    m_tiles[idx].set_open_unguarded();
+  }
+
 }; // namespace rake
 
 } // namespace rake

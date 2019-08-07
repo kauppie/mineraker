@@ -5,7 +5,6 @@
 
 #include "gamemanager.hpp"
 #include "mineboard.hpp"
-#include "mineboardcontroller.hpp"
 #include "mineboardformat.hpp"
 #include "mineraker.hpp"
 #include "texture.hpp"
@@ -28,27 +27,43 @@ int main(int argc, char *argv[]) {
   bool quit = false;
   SDL_Event e;
 
-  rake::WindowManager wm{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT,
-                         "Mineraker, version .5",
+  rake::WindowManager wm{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT, "MINERAKER",
                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE};
-  rake::WindowManager wm1{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT, "copy",
-                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE};
-  rake::MineBoard mb{16, 16, 123};
-  rake::GameManager gm{&wm, &mb};
-
-  mb.init(50, 40);
-  // gm.open_from(50);
+  rake::MineBoard mb;
+  mb.init(9, 9, time(0), 10);
+  rake::Texture tx(wm, "img/medium.png");
+  rake::GameManager gm{&wm, &mb, &tx};
 
   int mx = 0, my = 0;
-  auto tilex = rake::SCREEN_WIDTH / mb.width(),
-       tiley = rake::SCREEN_HEIGHT / mb.height();
+  uint32_t m_button = 0;
+
+  SDL_SetRenderDrawColor(wm, 15, 40, 94, 255);
 
   while (!quit) {
     while (SDL_PollEvent(&e) != 0) {
       if (e.type == SDL_QUIT)
         quit = true;
+      if (e.type == SDL_MOUSEBUTTONDOWN) {
+        m_button = SDL_GetMouseState(&mx, &my);
+        if (m_button & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+          gm.open_from(mx, my);
+          std::cerr << "\nopen button";
+        } else if (m_button & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
+          gm.flag_from(mx, my);
+          std::cerr << "\nflag button";
+        }
+      }
       wm.handle_event(&e);
-      wm1.handle_event(&e);
+
+      if (mb.state() == rake::MineBoard::State::GAME_WIN) {
+        std::cerr << "\nGame WIN";
+        mb.reset();
+        mb.init(30, 30, time(0), 170);
+      } else if (mb.state() == rake::MineBoard::State::GAME_LOSE) {
+        std::cerr << "\nGame LOSE";
+        mb.reset();
+        mb.init(30, 30, time(0), 170);
+      }
     }
     SDL_RenderClear(wm);
     gm.render();
