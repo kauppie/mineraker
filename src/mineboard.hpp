@@ -32,48 +32,79 @@ public:
   using tile_type = BoardTile;
   using this_type = MineBoard;
 
-  struct pos_type_t {
+  struct pos_type {
     diff_type x, y;
 
     // @brief Addition.
-    constexpr pos_type_t operator+(pos_type_t other) const noexcept {
+    constexpr pos_type operator+(pos_type other) const noexcept {
       return {x + other.x, y + other.y};
     }
 
     // @brief Substraction.
-    constexpr pos_type_t operator-(pos_type_t other) const noexcept {
+    constexpr pos_type operator-(pos_type other) const noexcept {
       return {x - other.x, y - other.y};
     }
 
     // @brief Unary plus.
-    constexpr pos_type_t operator+() const noexcept { return *this; }
+    constexpr pos_type operator+() const noexcept { return *this; }
 
     // @brief Unary minus.
-    constexpr pos_type_t operator-() const noexcept { return {-x, -y}; }
+    constexpr pos_type operator-() const noexcept { return {-x, -y}; }
 
     // @brief Addition assignment operator implementation.
-    constexpr pos_type_t operator+=(pos_type_t other) noexcept {
+    constexpr pos_type operator+=(pos_type other) noexcept {
       *this = {x + other.x, y + other.y};
       return *this;
     }
 
     // @brief Substraction assignment operator implementation.
-    constexpr pos_type_t operator-=(pos_type_t other) noexcept {
+    constexpr pos_type operator-=(pos_type other) noexcept {
       *this = {x - other.x, y - other.y};
       return *this;
     }
 
+    constexpr bool operator==(const pos_type &other) {
+      return x == other.x && y == other.y;
+    }
+
+    constexpr bool operator!=(const pos_type &other) {
+      return x != other.x || y != other.y;
+    }
+
+    constexpr bool operator<(const pos_type &other) {
+      return compare(other) == -1;
+    }
+
+    constexpr bool operator>(const pos_type &other) {
+      return compare(other) == 1;
+    }
+
+    constexpr bool operator<=(const pos_type &other) {
+      return compare(other) != 1;
+    }
+
+    constexpr bool operator>=(const pos_type &other) {
+      return compare(other) != -1;
+    }
+
     // @brief Compares this and other position types. First y is compared and if
     // not equal, return. Otherwise return comparison between x.
-    // @note Enable constexpr when lambdas can return constexpr.
-    static int compare(pos_type_t lhs, pos_type_t rhs) noexcept {
+    constexpr int compare(const pos_type &other) const noexcept {
       auto comp = [](diff_type v1, diff_type v2) -> int {
         return (v1 < v2 ? -1 : (v2 < v1 ? 1 : 0));
       };
-      auto ycomp = comp(lhs.y, rhs.y);
-      return (ycomp != 0 ? ycomp : comp(lhs.x, rhs.x));
+      auto ycomp = comp(y, other.y);
+      return (ycomp != 0 ? ycomp : comp(x, other.x));
     }
   };
+
+  static int compare(const pos_type &lhs, const pos_type &rhs) noexcept {
+    auto comp = [](diff_type v1, diff_type v2) -> int {
+      return (v1 < v2 ? -1 : (v2 < v1 ? 1 : 0));
+    };
+    auto ycomp = comp(lhs.y, rhs.y);
+    return (ycomp != 0 ? ycomp : comp(lhs.x, rhs.x));
+  }
 
   enum State {
     ERROR,
@@ -89,6 +120,9 @@ public:
 private:
   // Default container for the board tiles.
   std::vector<tile_type> m_tiles;
+  // Vector to store already opened empty tiles. Speeds up empty area opening
+  // operations dramatically.
+  std::vector<bool> m_opened_empty_tiles;
   // Variable for storing the board width.
   size_type m_width;
   // Variable for storing the board height.
@@ -113,12 +147,15 @@ public:
       : m_width(0), m_height(0), m_seed(0), m_mine_count(0),
         m_state(UNINITIALIZED) {}
   MineBoard(const this_type &other)
-      : m_tiles(other.m_tiles), m_width(other.m_width),
-        m_height(other.m_height), m_seed(other.m_seed),
+      : m_tiles(other.m_tiles),
+        m_opened_empty_tiles(other.m_opened_empty_tiles),
+        m_width(other.m_width), m_height(other.m_height), m_seed(other.m_seed),
         m_mine_count(other.m_mine_count), m_state(other.m_state) {}
   MineBoard(this_type &&other) noexcept
-      : m_tiles(std::move(other.m_tiles)), m_width(std::move(other.m_width)),
-        m_height(std::move(other.m_height)), m_seed(std::move(other.m_seed)),
+      : m_tiles(std::move(other.m_tiles)),
+        m_opened_empty_tiles(std::move(other.m_opened_empty_tiles)),
+        m_width(std::move(other.m_width)), m_height(std::move(other.m_height)),
+        m_seed(std::move(other.m_seed)),
         m_mine_count(std::move(other.m_mine_count)),
         m_state(std::move(other.m_state)) {}
   ~MineBoard() noexcept {}
@@ -147,6 +184,7 @@ public:
             std::mt19937_64::result_type seed, size_type mine_count) {
     resize(width, height);
     m_clear();
+    m_opened_empty_tiles = std::vector<bool>(tile_count(), false);
     m_seed = seed;
     m_mine_count = mine_count;
     m_state = FIRST_MOVE;
@@ -239,38 +277,38 @@ public:
   }
 
 private:
-  // @brief Converts pos_type_t to single index.
-  constexpr size_type m_to_idx(pos_type_t pos) const noexcept {
+  // @brief Converts pos_type to single index.
+  constexpr size_type m_to_idx(pos_type pos) const noexcept {
     return pos.y * m_width + pos.x;
   }
 
-  // @brief Converts single index to pos_type_t.
-  constexpr pos_type_t m_to_pos(size_type idx) const {
+  // @brief Converts single index to pos_type.
+  constexpr pos_type m_to_pos(size_type idx) const {
     return {static_cast<diff_type>(idx % m_width),
             static_cast<diff_type>(idx / m_width)};
   }
 
-  void m_set_tile(tile_type::value_type val, pos_type_t pos) noexcept {
+  void m_set_tile(tile_type::value_type val, pos_type pos) noexcept {
     auto tile = m_get_tile(pos);
     if (tile)
       tile.value().get().value(val);
   }
 
-  void m_set_tile_ptr(tile_type::value_type val, pos_type_t pos) noexcept {
+  void m_set_tile_ptr(tile_type::value_type val, pos_type pos) noexcept {
     auto tile = m_get_tile_ptr(pos);
     if (tile != nullptr)
       tile->value(val);
   }
 
   std::optional<std::reference_wrapper<tile_type>>
-  m_get_tile(pos_type_t pos) noexcept {
+  m_get_tile(pos_type pos) noexcept {
     if (m_b_inside_bounds(pos))
       return std::optional<std::reference_wrapper<tile_type>>{
           m_tiles[m_to_idx(pos)]};
     return std::nullopt;
   }
 
-  tile_type *m_get_tile_ptr(pos_type_t pos) {
+  tile_type *m_get_tile_ptr(pos_type pos) {
     if (m_b_inside_bounds(pos))
       return &m_tiles[m_to_idx(pos)];
     return nullptr;
@@ -348,8 +386,9 @@ private:
 
   void m_set_numbered_tiles_pos() {
     for (auto p = m_next_mine({0, 0});
-         pos_type_t::compare(p, {m_width, m_height}) == -1;
-         p = m_next_mine(p + pos_type_t{1, 0})) {
+         p.compare({static_cast<diff_type>(m_width),
+                    static_cast<diff_type>(m_height)}) == -1;
+         p = m_next_mine(p + pos_type{1, 0})) {
       for (auto n : m_tile_neighbours_unbnds(p))
         m_promote_tile(n);
     }
@@ -364,13 +403,13 @@ private:
 
   // @brief Adds 1 to tile's value unless it's a mine. Empty tile changes
   // to 1. Does bound checking.
-  void m_promote_tile(pos_type_t pos) {
+  void m_promote_tile(pos_type pos) {
     auto tile = m_get_tile(pos);
     if (tile)
       tile.value().get().promote();
   }
 
-  void m_promote_tile_ptr(pos_type_t pos) {
+  void m_promote_tile_ptr(pos_type pos) {
     auto tile = m_get_tile_ptr(pos);
     if (tile != nullptr)
       tile->promote();
@@ -380,7 +419,7 @@ private:
   constexpr bool m_b_inside_bounds(size_type index) const noexcept {
     return index < tile_count();
   }
-  constexpr bool m_b_inside_bounds(pos_type_t pos) const noexcept {
+  constexpr bool m_b_inside_bounds(pos_type pos) const noexcept {
     return pos.x >= 0 && pos.x < m_width && pos.y >= 0 && pos.y < m_height;
   }
 
@@ -397,12 +436,14 @@ private:
 
   // @brief Returns next tile position with the type of mine starting from
   // given position. If mine not found until the end of the array, returns
-  // %pos_type_t with types' %diff_type: x and
+  // %pos_type with types' %diff_type: x and
   // %diff_type: y max values as parameters.
-  pos_type_t m_next_mine(pos_type_t pos) noexcept {
-    for (; pos_type_t::compare(pos, {m_width, m_height}) == -1;
-         (pos.x % m_width != m_width - 1 ? pos += {1, 0}
-                                         : pos += {-m_width + 1, 1})) {
+  pos_type m_next_mine(pos_type pos) noexcept {
+    for (; pos.compare({static_cast<diff_type>(m_width),
+                        static_cast<diff_type>(m_height)}) == -1;
+         (pos.x % m_width != m_width - 1
+              ? pos += {1, 0}
+              : pos += {static_cast<diff_type>(-m_width + 1), 1})) {
       if (m_get_tile_ptr(pos)->is_mine())
         return pos;
     }
@@ -457,8 +498,8 @@ private:
     return rv;
   }
 
-  std::vector<pos_type_t> m_tile_neighbours_bnds(pos_type_t pos) const {
-    std::vector<pos_type_t> rv;
+  std::vector<pos_type> m_tile_neighbours_bnds(pos_type pos) const {
+    std::vector<pos_type> rv;
     const auto neigh_unbnds = m_tile_neighbours_unbnds(pos);
     for (const auto &unbnd : neigh_unbnds)
       if (m_b_inside_bounds(unbnd))
@@ -500,13 +541,12 @@ private:
     return rv;
   }
 
-  static constexpr std::array<pos_type_t, TILE_NEIGHBOUR_COUNT>
-  m_tile_neighbours_unbnds(pos_type_t pos) noexcept {
-    return std::array<pos_type_t, TILE_NEIGHBOUR_COUNT>{
-        {pos + pos_type_t{-1, -1}, pos + pos_type_t{0, -1},
-         pos + pos_type_t{1, -1}, pos + pos_type_t{-1, 0},
-         pos + pos_type_t{1, 0}, pos + pos_type_t{-1, 1},
-         pos + pos_type_t{0, 1}, pos + pos_type_t{1, 1}}};
+  static constexpr std::array<pos_type, TILE_NEIGHBOUR_COUNT>
+  m_tile_neighbours_unbnds(pos_type pos) noexcept {
+    return std::array<pos_type, TILE_NEIGHBOUR_COUNT>{
+        {pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
+         pos + pos_type{-1, 0}, pos + pos_type{1, 0}, pos + pos_type{-1, 1},
+         pos + pos_type{0, 1}, pos + pos_type{1, 1}}};
   }
 
   void m_flood_open(size_type idx) {
@@ -529,10 +569,11 @@ private:
 
   // @brief Returns vector of empty tiles that are neighbouring each other
   // starting from given index.
-  std::vector<size_type> m_empty_tiles_empty_area(size_type idx) const {
+  std::vector<size_type> m_empty_tiles_empty_area(size_type idx) {
     if (!m_tiles[idx].is_empty())
       return std::vector<size_type>{};
-
+    if (m_opened_empty_tiles[idx])
+      return std::vector<size_type>{};
     // Vector to be returned.
     std::vector<size_type> rv;
     // Stack for storing neighbouring tile's which are to be checked.
@@ -551,6 +592,10 @@ private:
         if (m_tiles[n].is_empty() && !checked_tiles[n])
           st_neigh.emplace(n);
     }
+    m_opened_empty_tiles.insert(m_opened_empty_tiles.end(), rv.begin(),
+                                rv.end());
+    for (auto i : rv)
+      m_opened_empty_tiles[i] = true;
     return rv;
   }
 
@@ -569,7 +614,7 @@ private:
   void m_open_single_tile(size_type idx) {
     if (m_tiles[idx].is_flagged())
       return;
-    else if (m_tiles[idx].is_mine())
+    if (m_tiles[idx].is_mine())
       m_state = GAME_LOSE;
     m_tiles[idx].set_open_unguarded();
   }

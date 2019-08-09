@@ -103,6 +103,8 @@ public:
   // Returns title of the window.
   auto title() const { return m_title; }
 
+  auto id() const { return m_window_id; }
+
   // Returns width of the window.
   auto width() const { return m_width; }
 

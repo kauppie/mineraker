@@ -9,6 +9,7 @@
 
 #include "boardtile.hpp"
 #include "mineboard.hpp"
+#include "mineboardsolver.hpp"
 #include "mineraker.hpp"
 #include "texture.hpp"
 #include "windowmanager.hpp"
@@ -55,12 +56,40 @@ public:
 
   // Opens specified tile from mouse coordinates.
   void open_from(int mouse_x, int mouse_y) {
-    m_board->open_tile(m_mouse_to_index(mouse_x, mouse_y));
+    size_type idx = m_mouse_to_index(mouse_x, mouse_y);
+    bool was_first = false;
+    if (m_board->state() == rake::MineBoard::State::FIRST_MOVE)
+      was_first = true;
+    m_board->open_tile(idx);
+    if (was_first)
+      ;
+    // find_solvable_game(idx);
   }
 
   // Flags specified tile from mouse coordinates.
   void flag_from(int mouse_x, int mouse_y) {
     m_board->flag_tile(m_mouse_to_index(mouse_x, mouse_y));
+  }
+
+  void find_solvable_game(size_type idx) {
+    if (m_board == nullptr)
+      return;
+    MineBoardSolver mbs(*m_board);
+    size_type i = 0;
+    while (m_board->state() != rake::MineBoard::State::GAME_WIN) {
+      m_board->init(
+          m_board->width(), m_board->height(),
+          std::chrono::high_resolution_clock::now().time_since_epoch().count(),
+          m_board->mine_count());
+      m_board->open_tile(idx);
+      while (mbs.b_overlap_solve())
+        ;
+      ++i;
+    }
+    m_board->init(m_board->width(), m_board->height(), m_board->seed(),
+                  m_board->mine_count());
+    m_board->open_tile(idx);
+    std::cerr << "\niterations to find solvable: " << i;
   }
 
   // Renders the board to the window.
@@ -72,7 +101,9 @@ public:
     }
     auto tile_edge = std::min(m_window->width() / m_board->width(),
                               m_window->height() / m_board->height());
-    SDL_Rect dst_rect{0, 0, tile_edge, tile_edge};
+    auto x_offset = (m_window->width() - tile_edge * m_board->width()) / 2,
+         y_offset = (m_window->height() - tile_edge * m_board->height()) / 2;
+    SDL_Rect dst_rect{0, 0, (int)tile_edge, (int)tile_edge};
 
     for (size_type i = 0; i < m_board->tile_count(); ++i) {
       auto tile = m_board->m_tiles[i];
@@ -84,10 +115,8 @@ public:
       else
         clip = m_tiles_from_texture[10];
 
-      dst_rect.x = i % m_board->width() * tile_edge +
-                   (m_window->width() - tile_edge * m_board->width()) / 2;
-      dst_rect.y = i / m_board->width() * tile_edge +
-                   (m_window->height() - tile_edge * m_board->height()) / 2;
+      dst_rect.x = i % m_board->width() * tile_edge + x_offset;
+      dst_rect.y = i / m_board->width() * tile_edge + y_offset;
 
       m_tile_texture->render(*m_window, &clip, &dst_rect);
     }
@@ -98,12 +127,12 @@ private:
     auto tile_edge = std::min(m_window->width() / m_board->width(),
                               m_window->height() / m_board->height());
     auto x_offset = (m_window->width() - tile_edge * m_board->width()) / 2;
+    // If %x is out of bounds, return result out of bounds.
+    if (mouse_x >= m_window->width() - x_offset)
+      return m_board->width() * m_board->height();
     auto y_offset = (m_window->height() - tile_edge * m_board->height()) / 2;
     auto x = (mouse_x - x_offset) / tile_edge;
     auto y = (mouse_y - y_offset) / tile_edge;
-    // If %x is out of bounds, set result out of bounds.
-    if (mouse_x >= m_window->width() - x_offset)
-      return m_board->width() * m_board->height();
     return y * m_board->width() + x;
   }
 

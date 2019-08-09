@@ -1,14 +1,19 @@
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 #include <SDL2/SDL.h>
 
 #include "gamemanager.hpp"
 #include "mineboard.hpp"
-#include "mineboardformat.hpp"
+#include "mineboardsolver.hpp"
 #include "mineraker.hpp"
 #include "texture.hpp"
 #include "windowmanager.hpp"
+
+void foo() { std::cerr << "Hello, foo!" << std::endl; }
+void boo() { std::cerr << "Hello, boo!" << std::endl; }
+void soo() { std::cerr << "Hello, soo!" << std::endl; }
 
 int main(int argc, char *argv[]) {
 
@@ -25,25 +30,38 @@ int main(int argc, char *argv[]) {
   atexit(rake::quit);
 
   bool quit = false;
-  SDL_Event e;
-
-  rake::WindowManager wm{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT, "MINERAKER",
-                         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE};
-  rake::MineBoard mb;
-  mb.init(9, 9, time(0), 10);
-  rake::Texture tx(wm, "img/medium.png");
-  rake::GameManager gm{&wm, &mb, &tx};
+  SDL_Event event;
+  SDL_DisplayMode display_mode;
 
   int mx = 0, my = 0;
   uint32_t m_button = 0;
 
+  rake::WindowManager wm{rake::SCREEN_WIDTH, rake::SCREEN_HEIGHT,
+                         "Mineraker alpha",
+                         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE};
+  rake::MineBoard mb;
+  rake::Texture tx(wm, "img/medium.png");
+  rake::GameManager gm{&wm, &mb, &tx};
+
+  rake::MineBoardSolver mbs(mb);
+
+  mb.init(30, 16, time(0), 99);
+
+  SDL_GetWindowDisplayMode(wm, &display_mode);
+  int refresh_rate = std::max(display_mode.refresh_rate, 60);
+
+  // Use steady clock to avoid sensitivity to clock adjustments.
+  auto frame_time = std::chrono::steady_clock::now().time_since_epoch();
+
+  rake::size_type test_times = 0;
+
   SDL_SetRenderDrawColor(wm, 15, 40, 94, 255);
 
   while (!quit) {
-    while (SDL_PollEvent(&e) != 0) {
-      if (e.type == SDL_QUIT)
+    while (SDL_PollEvent(&event) != 0) {
+      if (event.type == SDL_QUIT)
         quit = true;
-      if (e.type == SDL_MOUSEBUTTONDOWN) {
+      if (event.type == SDL_MOUSEBUTTONDOWN) {
         m_button = SDL_GetMouseState(&mx, &my);
         if (m_button & SDL_BUTTON(SDL_BUTTON_LEFT)) {
           gm.open_from(mx, my);
@@ -53,21 +71,32 @@ int main(int argc, char *argv[]) {
           std::cerr << "\nflag button";
         }
       }
-      wm.handle_event(&e);
+      wm.handle_event(&event);
 
       if (mb.state() == rake::MineBoard::State::GAME_WIN) {
         std::cerr << "\nGame WIN";
-        mb.reset();
-        mb.init(30, 30, time(0), 170);
+        mb.init(30, 16, time(0), 99);
+        mbs.reset();
       } else if (mb.state() == rake::MineBoard::State::GAME_LOSE) {
         std::cerr << "\nGame LOSE";
-        mb.reset();
-        mb.init(30, 30, time(0), 170);
+        mb.init(30, 16, time(0), 99);
+        mbs.reset();
       }
     }
+
+    std::chrono::duration<int, std::nano> sleep_time =
+        std::chrono::microseconds(1000000 / refresh_rate) - frame_time +
+        std::chrono::steady_clock::now().time_since_epoch();
+    std::this_thread::sleep_for(sleep_time);
+    frame_time = std::chrono::steady_clock::now().time_since_epoch();
+
     SDL_RenderClear(wm);
     gm.render();
     SDL_RenderPresent(wm);
+
+    mbs.b_pattern_solve_old();
+    mbs.b_overlap_solve();
+    mbs.open_by_flagged();
   }
   return 0;
 }

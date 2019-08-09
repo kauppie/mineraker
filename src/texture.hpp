@@ -36,8 +36,8 @@ public:
       : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {}
   ~Texture() noexcept { free(); }
 
-  operator auto() const { return m_texture; }
-  operator auto() const { return m_surface; }
+  operator SDL_Texture *() const { return m_texture; }
+  operator SDL_Surface *() const { return m_surface; }
 
   // Returns whether image loading and texture assignment succesfully completed.
   // Assigns texture to specified renderer.
