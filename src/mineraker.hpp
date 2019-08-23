@@ -5,6 +5,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <mutex>
 #include <string>
 
 #include <SDL2/SDL.h>
@@ -34,6 +35,8 @@ void quit() {
 }
 
 template <typename T> void call_once(T (*func)()) {
+  static std::mutex map_mutex;
+  std::lock_guard<std::mutex> lock(map_mutex);
   static std::unordered_map<decltype(func), bool> is_used_map;
   if (is_used_map.find(func) == is_used_map.end()) {
     func();
@@ -42,6 +45,7 @@ template <typename T> void call_once(T (*func)()) {
 }
 
 static constexpr const int SCREEN_WIDTH = 640, SCREEN_HEIGHT = 480;
+// Tile input texture dimensions used for clipping individual textures.
 static constexpr const int TEXTURE_WIDTH_COUNT = 4, TEXTURE_HEIGHT_COUNT = 3;
 
 } // namespace rake

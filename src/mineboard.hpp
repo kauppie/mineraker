@@ -1,6 +1,7 @@
 #ifndef MINEBOARD_HPP
 #define MINEBOARD_HPP
 
+#include <algorithm>
 #include <exception>
 #include <functional>
 #include <iostream>
@@ -63,27 +64,27 @@ public:
       return *this;
     }
 
-    constexpr bool operator==(const pos_type &other) {
+    constexpr bool operator==(const pos_type &other) const {
       return x == other.x && y == other.y;
     }
 
-    constexpr bool operator!=(const pos_type &other) {
+    constexpr bool operator!=(const pos_type &other) const {
       return x != other.x || y != other.y;
     }
 
-    constexpr bool operator<(const pos_type &other) {
+    constexpr bool operator<(const pos_type &other) const {
       return compare(other) == -1;
     }
 
-    constexpr bool operator>(const pos_type &other) {
+    constexpr bool operator>(const pos_type &other) const {
       return compare(other) == 1;
     }
 
-    constexpr bool operator<=(const pos_type &other) {
+    constexpr bool operator<=(const pos_type &other) const {
       return compare(other) != 1;
     }
 
-    constexpr bool operator>=(const pos_type &other) {
+    constexpr bool operator>=(const pos_type &other) const {
       return compare(other) != -1;
     }
 
@@ -162,6 +163,7 @@ public:
 
   this_type &operator=(const this_type &other) {
     m_tiles = other.m_tiles;
+    m_opened_empty_tiles = other.m_opened_empty_tiles;
     m_width = other.m_width;
     m_height = other.m_height;
     m_seed = other.m_seed;
@@ -172,6 +174,7 @@ public:
 
   this_type &&operator=(this_type &&other) noexcept {
     m_tiles = std::move(other.m_tiles);
+    m_opened_empty_tiles = std::move(other.m_opened_empty_tiles);
     m_width = std::move(other.m_width);
     m_height = std::move(other.m_height);
     m_seed = std::move(other.m_seed);
@@ -211,7 +214,7 @@ public:
 
   void m_on_next_move(size_type idx) {
     m_flood_open(idx);
-    if (tile_count() - mine_count() == open_tiles_count())
+    if (tile_count() - m_mine_count == open_tiles_count())
       m_state = GAME_WIN;
   }
 
@@ -233,6 +236,7 @@ public:
   void resize(size_type width, size_type height) {
     try {
       m_tiles.resize(width * height);
+      m_opened_empty_tiles.resize(width * height);
       m_width = width;
       m_height = height;
     } catch (std::exception &e) {
@@ -249,7 +253,7 @@ public:
 
   constexpr auto seed() const noexcept { return m_seed; }
 
-  constexpr auto state() const noexcept { return m_state; }
+  constexpr size_type state() const noexcept { return m_state; }
 
   // @brief Returns the width of the board.
   constexpr size_type width() const noexcept { return m_width; }
@@ -272,7 +276,7 @@ public:
   }
 
   // @brief Returns the amount of neighbours tiles have combined.
-  constexpr auto neighbours_of_tiles_count() const noexcept {
+  constexpr size_type neighbours_of_tiles_count() const noexcept {
     return m_width * (8 * m_height - 6) - 6 * m_height + 4;
   }
 
@@ -318,6 +322,7 @@ private:
   void m_clear() {
     for (auto &tile : m_tiles)
       tile.clear();
+    std::fill(m_opened_empty_tiles.begin(), m_opened_empty_tiles.end(), false);
   }
 
   // @brief Calculates mine count from given count and distributes them
@@ -471,6 +476,7 @@ private:
   // @brief Returns bounds checked neighbours.
   std::vector<size_type> m_tile_neighbours_bnds(size_type idx) const {
     std::vector<size_type> rv;
+    rv.reserve(m_neighbour_count(idx));
     const bool up_edge = idx >= m_width && idx < tile_count(),
                bottom_edge = idx < (tile_count() - m_width);
     if (up_edge)
@@ -563,7 +569,8 @@ private:
         }
     } else {
       m_open_single_tile(idx);
-      m_open_neighbours(m_empty_tiles_empty_area(idx));
+      if (m_tiles[idx].is_empty())
+        m_open_neighbours(m_empty_tiles_empty_area(idx));
     }
   }
 
@@ -592,8 +599,6 @@ private:
         if (m_tiles[n].is_empty() && !checked_tiles[n])
           st_neigh.emplace(n);
     }
-    m_opened_empty_tiles.insert(m_opened_empty_tiles.end(), rv.begin(),
-                                rv.end());
     for (auto i : rv)
       m_opened_empty_tiles[i] = true;
     return rv;

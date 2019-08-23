@@ -47,11 +47,29 @@ public:
     return count;
   }
 
+  auto flagged_not_neighbours_count(size_type idx) const {
+    size_type count = 0;
+    auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+    for (auto i : neighbrs)
+      if (!m_board.m_tiles[i].is_flagged())
+        ++count;
+    return count;
+  }
+
   auto open_neighbours_count(size_type idx) const {
     size_type count = 0;
     auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
     for (auto i : neighbrs)
       if (m_board.m_tiles[i].is_open())
+        ++count;
+    return count;
+  }
+
+  auto open_not_neighbours_count(size_type idx) const {
+    size_type count = 0;
+    auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+    for (auto i : neighbrs)
+      if (!m_board.m_tiles[i].is_open())
         ++count;
     return count;
   }
@@ -123,6 +141,30 @@ public:
     return b_state_changed;
   }
 
+  // Finds first index containing tile with specified value. If %flag_offset is
+  // set to true, every tile's flagged neighbours count is substracted from the
+  // tile actual value and then compared to given tile value.
+  size_type find_value(BoardTile::value_type tile_value, size_type offset = 0,
+                       bool flag_offset = false) {
+    auto &tiles = m_board.m_tiles;
+    if (flag_offset) {
+      for (size_type i = offset; i < tiles.size(); ++i) {
+        auto neighbrs = m_board.m_tile_neighbours_bnds(i);
+        BoardTile::value_type flagged_neighbours = 0;
+        for (auto n : neighbrs)
+          if (tiles[n].is_flagged())
+            ++flagged_neighbours;
+        if (tiles[i].value() - flagged_neighbours == tile_value)
+          return i;
+      }
+    } else {
+      for (size_type i = offset; i < tiles.size(); ++i) {
+        if (tiles[i].value() == tile_value)
+          return i;
+      }
+    }
+  }
+
   // @brief Compares each tile's value to it's unopened neighbour tile count and
   // flag those if they are equal.
   auto b_overlap_solve() {
@@ -152,185 +194,44 @@ public:
     return b_state_changed;
   }
 
-  // @brief Flags tiles based on the known 2-1 pattern.
-  auto b_pattern_solve_old() {
-    bool b_state_changed = false;
-    auto &tiles = m_board.m_tiles;
-
-    using pos_type = MineBoard::pos_type;
-    std::pair<pos_type, pos_type> res_pos;
-
-    for (size_type i = 0; i < tiles.size(); ++i) {
-      if (tiles[i].is_open()) {
-        auto neighbrs = m_board.m_tile_neighbours_bnds(i);
-        BoardTile::value_type fn2 = 0;
-        for (size_type n : neighbrs)
-          if (tiles[n].is_flagged())
-            ++fn2;
-        if (tiles[i].value() - fn2 == BoardTile::TILE_2) {
-          auto pos2 = m_board.m_to_pos(i);
-          // Set out of bounds initially before tile valued 1 isn't yet found.
-          pos_type pos1{static_cast<diff_type>(m_board.width()),
-                        static_cast<diff_type>(m_board.height())};
-          bool open_tile_infront = false;
-          BoardTile::value_type fn1 = 0;
-          for (size_type n : neighbrs)
-            if (tiles[n].is_flagged())
-              ++fn1;
-          for (size_type n : neighbrs) {
-            if (tiles[n].value() - fn1 == BoardTile::TILE_1) {
-              pos1 = m_board.m_to_pos(n);
-              if (pos2 - pos1 == pos_type{1, 0}) {
-                res_pos.first = pos2 + pos_type{1, -1};
-                res_pos.second = pos2 + pos_type{1, 1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{1, 0})].is_open())
-                  open_tile_infront = true;
-              } else if (pos2 - pos1 == pos_type{-1, 0}) {
-                res_pos.first = pos2 + pos_type{-1, -1};
-                res_pos.second = pos2 + pos_type{-1, 1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{-1, 0})].is_open())
-                  open_tile_infront = true;
-              } else if (pos2 - pos1 == pos_type{0, 1}) {
-                res_pos.first = pos2 + pos_type{-1, 1};
-                res_pos.second = pos2 + pos_type{1, 1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{0, 1})].is_open())
-                  open_tile_infront = true;
-              } else if (pos2 - pos1 == pos_type{0, -1}) {
-                res_pos.first = pos2 + pos_type{-1, -1};
-                res_pos.second = pos2 + pos_type{1, -1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{0, -1})].is_open())
-                  open_tile_infront = true;
-              }
-              if (open_tile_infront) {
-                bool b1 = m_board.m_b_inside_bounds(res_pos.first);
-                bool b2 = m_board.m_b_inside_bounds(res_pos.second);
-                if (b1 && b2) {
-                  // This next if statement must be inside the (b1 && b2)
-                  // clause, because else if(b1) can't be triggered by situation
-                  // where %first and %second positions on the board are both
-                  // closed.
-                  if (tiles[m_board.m_to_idx(res_pos.first)].is_open() ^
-                      tiles[m_board.m_to_idx(res_pos.second)].is_open()) {
-                    if (!tiles[m_board.m_to_idx(res_pos.first)].is_open())
-                      tiles[m_board.m_to_idx(res_pos.first)].set_flagged();
-                    else
-                      tiles[m_board.m_to_idx(res_pos.second)].set_flagged();
-                    b_state_changed = true;
-                  }
-                } else if (b1) {
-                  tiles[m_board.m_to_idx(res_pos.first)].set_flagged();
-                  b_state_changed = true;
-                } else if (b2) {
-                  tiles[m_board.m_to_idx(res_pos.second)].set_flagged();
-                  b_state_changed = true;
-                }
-                open_tile_infront = false;
-              }
-            }
-          }
-        }
-      }
-    }
-    return b_state_changed;
-  }
-
-  size_type find_value(BoardTile::value_type tile_value, size_type offset,
-                       bool flag_offset = false) {
-    auto &tiles = m_board.m_tiles;
-    for (size_type i = offset; i < tiles.size(); ++i) {
-      if (flag_offset) {
-        auto neighbrs = m_board.m_tile_neighbours_bnds(i);
-        BoardTile::value_type flagged_neighbours = 0;
-        for (auto n : neighbrs)
-          if (tiles[n].is_flagged())
-            ++flagged_neighbours;
-        if (tiles[i].value() - flagged_neighbours == tile_value)
-          return i;
-      } else if (tiles[i].value() == tile_value)
-        return i;
-    }
-  }
-
+  // @todo Comment steps in the algorithm.
   auto b_pattern_solve() {
     bool b_state_changed = false;
     auto &tiles = m_board.m_tiles;
 
-    using pos_type = MineBoard::pos_type;
-    std::pair<pos_type, pos_type> res_pos;
+    for (size_type i = 0; i < tiles.size(); ++i) {
+      if (tiles[i].is_open() && tiles[i].is_number()) {
+        for (auto n : m_board.m_tile_neighbours_bnds(i)) {
+          if (tiles[n].is_open() && tiles[n].is_number()) {
+            std::vector<size_type> neighbrs;
+            for (auto neigh : m_board.m_tile_neighbours_bnds(i))
+              if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
+                neighbrs.emplace_back(neigh);
 
-    for (size_type i2 = 0; i2 < tiles.size(); ++i2) {
-      if (tiles[i2].is_open()) {
-        auto n2 = m_board.m_tile_neighbours_bnds(i2);
-        BoardTile::value_type fn2 = 0;
-        for (auto n : n2)
-          if (tiles[n].is_flagged())
-            ++fn2;
-        if (tiles[i2].value() - fn2 == BoardTile::TILE_2) {
-          auto pos2 = m_board.m_to_pos(i2);
-          // Set out of bounds initially before tile valued 1 isn't yet found.
-          pos_type pos1{static_cast<diff_type>(m_board.width()),
-                        static_cast<diff_type>(m_board.height())};
-          bool open_tile_infront = false;
-          BoardTile::value_type fn1 = 0;
+            std::vector<size_type> n_neighbrs;
+            for (auto neigh : m_board.m_tile_neighbours_bnds(n))
+              if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
+                n_neighbrs.emplace_back(neigh);
 
-          // %n2 stands for neighbour of %i2.
-          // This loop searches for neighbours of %TILE_2 which have value
-          // TILE_1 also taking to account the possible pre-flagged tiles.
-          for (size_type in2 = 0; in2 < n2.size() && tiles[n2[in2]].is_open();
-               ++in2) {
-            auto n1 = m_board.m_tile_neighbours_bnds(n2[in2]);
-            fn1 = 0;
-            for (auto i : n1)
-              if (tiles[i].is_flagged())
-                ++fn1;
-            if (tiles[n2[in2]].value() - fn1 == BoardTile::TILE_1) {
-              open_tile_infront = false;
-              pos1 = m_board.m_to_pos(n2[in2]);
-              if (pos2 - pos1 == pos_type{1, 0}) {
-                res_pos.first = pos2 + pos_type{1, -1};
-                res_pos.second = pos2 + pos_type{1, 1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{1, 0})].is_open())
-                  open_tile_infront = true;
-              } else if (pos2 - pos1 == pos_type{-1, 0}) {
-                res_pos.first = pos2 + pos_type{-1, -1};
-                res_pos.second = pos2 + pos_type{-1, 1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{-1, 0})].is_open())
-                  open_tile_infront = true;
-              } else if (pos2 - pos1 == pos_type{0, 1}) {
-                res_pos.first = pos2 + pos_type{-1, 1};
-                res_pos.second = pos2 + pos_type{1, 1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{0, 1})].is_open())
-                  open_tile_infront = true;
-              } else if (pos2 - pos1 == pos_type{0, -1}) {
-                res_pos.first = pos2 + pos_type{-1, -1};
-                res_pos.second = pos2 + pos_type{1, -1};
-                if (tiles[m_board.m_to_idx(pos2 + pos_type{0, -1})].is_open())
-                  open_tile_infront = true;
-              }
-              if (open_tile_infront) {
-                bool b1 = m_board.m_b_inside_bounds(res_pos.first);
-                bool b2 = m_board.m_b_inside_bounds(res_pos.second);
-                if (b1 && b2) {
-                  // This next if statement must be inside the (b1 && b2)
-                  // clause, because else if(b1) can't be triggered by situation
-                  // where %first and %second positions on the board are both
-                  // closed.
-                  if (tiles[m_board.m_to_idx(res_pos.first)].is_open() ^
-                      tiles[m_board.m_to_idx(res_pos.second)].is_open()) {
-                    if (!tiles[m_board.m_to_idx(res_pos.first)].is_open())
-                      tiles[m_board.m_to_idx(res_pos.first)].set_flagged();
-                    else
-                      tiles[m_board.m_to_idx(res_pos.second)].set_flagged();
-                    b_state_changed = true;
-                  }
-                } else if (b1) {
-                  tiles[m_board.m_to_idx(res_pos.first)].set_flagged();
-                  b_state_changed = true;
-                } else if (b2) {
-                  tiles[m_board.m_to_idx(res_pos.second)].set_flagged();
-                  b_state_changed = true;
-                }
-              }
+            // Sort vectors so that %std::set_difference returns correct result.
+            std::sort(neighbrs.begin(), neighbrs.end());
+            std::sort(n_neighbrs.begin(), n_neighbrs.end());
+
+            std::vector<size_type> union_neighbrs, flag_neighbrs;
+            std::set_union(
+                neighbrs.begin(), neighbrs.end(), n_neighbrs.begin(),
+                n_neighbrs.end(),
+                std::inserter(union_neighbrs, union_neighbrs.begin()));
+            std::set_difference(
+                union_neighbrs.begin(), union_neighbrs.end(),
+                n_neighbrs.begin(), n_neighbrs.end(),
+                std::inserter(flag_neighbrs, flag_neighbrs.begin()));
+            if (tiles[i].value() - flagged_neighbours_count(i) -
+                        tiles[n].value() + flagged_neighbours_count(n) ==
+                    1 &&
+                flag_neighbrs.size() == 1) {
+              tiles[flag_neighbrs.front()].set_flagged();
+              b_state_changed = true;
             }
           }
         }
@@ -339,35 +240,58 @@ public:
     return b_state_changed;
   }
 
-  // @brief Solves from tiles which share neighbours. Opens those tiles'
-  // neighbours which CANNOT be mines.
-  /**
-   * tile's neighbours complete overlap possible mine positions of another tile.
-exluded is not mine.
-
-tile value - flagged neighbours = remaining mines
-
-tile1 neighbours difference tile2 neighbours
-
-tile1 or tile2 contains difference, result -> tileD
-
-tileD value - flagged neighbours == 1
--> open difference
-
-else
--> flag difference
-   */
+  // @brief Opens tiles that can't be mines based on tile value pairs.
   auto b_common_solve() {
     bool b_state_changed = false;
     auto &tiles = m_board.m_tiles;
+
+    // Iterate over tiles.
     for (size_type i = 0; i < tiles.size(); ++i) {
       if (tiles[i].is_open() && tiles[i].is_number()) {
-        auto neighbrs = m_board.m_tile_neighbours_bnds(i);
-
-        for (auto n : neighbrs) {
+        // Iterate over tile's neighbours.
+        for (auto n : m_board.m_tile_neighbours_bnds(i)) {
           if (tiles[n].is_open() && tiles[n].is_number()) {
-            auto 
-            std::set_difference(neighbrs.begin(), neighbrs.end(),
+            // Construct a vector with tile's neighbours indexes that aren't
+            // open nor flagged.
+            std::vector<size_type> neighbrs;
+            for (auto neigh : m_board.m_tile_neighbours_bnds(i))
+              if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
+                neighbrs.emplace_back(neigh);
+
+            // Construct a vector with neighbours's neighbours indexes that
+            // aren't open nor flagged.
+            std::vector<size_type> n_neighbrs;
+            for (auto neigh : m_board.m_tile_neighbours_bnds(n))
+              if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
+                n_neighbrs.emplace_back(neigh);
+
+            // %std::set_difference requires sorted data as parameter.
+            std::sort(neighbrs.begin(), neighbrs.end());
+            std::sort(n_neighbrs.begin(), n_neighbrs.end());
+
+            // Extract difference from %neighbrs and %n_neighbrs vectors and
+            // insert the result to %diff_neighbrs.
+            std::vector<size_type> diff_neighbrs;
+            std::set_difference(
+                neighbrs.begin(), neighbrs.end(), n_neighbrs.begin(),
+                n_neighbrs.end(),
+                std::inserter(diff_neighbrs, diff_neighbrs.begin()));
+
+            // Check whether %n_neighbrs vector is included in the %neighbrs
+            // vector and tile's value with flagged neighbours substracted from
+            // it equals neighbour's value, also with flagged neighbours
+            // substracted from it.
+            if (std::includes(neighbrs.begin(), neighbrs.end(),
+                              n_neighbrs.begin(), n_neighbrs.end()) &&
+                tiles[i].value() - flagged_neighbours_count(i) ==
+                    tiles[n].value() - flagged_neighbours_count(n)) {
+              // Open those tiles that are left over from the possible mine
+              // positions.
+              for (auto diff : diff_neighbrs) {
+                m_board.m_flood_open(diff);
+                b_state_changed = true;
+              }
+            }
           }
         }
       }

@@ -11,10 +11,6 @@
 #include "texture.hpp"
 #include "windowmanager.hpp"
 
-void foo() { std::cerr << "Hello, foo!" << std::endl; }
-void boo() { std::cerr << "Hello, boo!" << std::endl; }
-void soo() { std::cerr << "Hello, soo!" << std::endl; }
-
 int main(int argc, char *argv[]) {
 
   if (!rake::init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER |
@@ -52,8 +48,6 @@ int main(int argc, char *argv[]) {
 
   // Use steady clock to avoid sensitivity to clock adjustments.
   auto frame_time = std::chrono::steady_clock::now().time_since_epoch();
-
-  rake::size_type test_times = 0;
 
   SDL_SetRenderDrawColor(wm, 15, 40, 94, 255);
 
@@ -94,8 +88,12 @@ int main(int argc, char *argv[]) {
     gm.render();
     SDL_RenderPresent(wm);
 
-    mbs.b_pattern_solve_old();
-    mbs.b_overlap_solve();
+    if (mbs.b_overlap_solve())
+      std::cerr << "\noverlap solve";
+    if (mbs.b_common_solve())
+      std::cerr << "\ncommon solve";
+    if (mbs.b_pattern_solve())
+      std::cerr << "\npattern solve";
     mbs.open_by_flagged();
   }
   return 0;
