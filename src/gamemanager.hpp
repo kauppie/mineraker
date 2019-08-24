@@ -62,8 +62,7 @@ public:
       was_first = true;
     m_board->open_tile(idx);
     if (was_first)
-      ;
-    // find_solvable_game(idx);
+      find_solvable_game(idx);
   }
 
   // Flags specified tile from mouse coordinates.
@@ -77,13 +76,13 @@ public:
     MineBoardSolver mbs(*m_board);
     size_type i = 0;
     while (m_board->state() != rake::MineBoard::State::GAME_WIN) {
-      m_board->init(
-          m_board->width(), m_board->height(),
-          std::chrono::high_resolution_clock::now().time_since_epoch().count(),
-          m_board->mine_count());
+      auto seed =
+          std::chrono::high_resolution_clock::now().time_since_epoch().count();
+      m_board->init(m_board->width(), m_board->height(), seed,
+                    m_board->mine_count());
       m_board->open_tile(idx);
-      while (mbs.b_overlap_solve())
-        ;
+      if (mbs.b_solve())
+        mbs.open_by_flagged();
       ++i;
     }
     m_board->init(m_board->width(), m_board->height(), m_board->seed(),
@@ -103,7 +102,8 @@ public:
                               m_window->height() / m_board->height());
     auto x_offset = (m_window->width() - tile_edge * m_board->width()) / 2,
          y_offset = (m_window->height() - tile_edge * m_board->height()) / 2;
-    SDL_Rect dst_rect{0, 0, (int)tile_edge, (int)tile_edge};
+    SDL_Rect dst_rect{0, 0, static_cast<int>(tile_edge),
+                      static_cast<int>(tile_edge)};
 
     for (size_type i = 0; i < m_board->tile_count(); ++i) {
       auto tile = m_board->m_tiles[i];

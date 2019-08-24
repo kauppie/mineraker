@@ -78,23 +78,15 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    std::chrono::duration<int, std::nano> sleep_time =
-        std::chrono::microseconds(1000000 / refresh_rate) - frame_time +
-        std::chrono::steady_clock::now().time_since_epoch();
+    std::chrono::duration<double, std::nano> sleep_time =
+        std::chrono::duration<double, std::micro>(1000000. / refresh_rate) -
+        frame_time + std::chrono::steady_clock::now().time_since_epoch();
     std::this_thread::sleep_for(sleep_time);
     frame_time = std::chrono::steady_clock::now().time_since_epoch();
 
     SDL_RenderClear(wm);
     gm.render();
     SDL_RenderPresent(wm);
-
-    if (mbs.b_overlap_solve())
-      std::cerr << "\noverlap solve";
-    if (mbs.b_common_solve())
-      std::cerr << "\ncommon solve";
-    if (mbs.b_pattern_solve())
-      std::cerr << "\npattern solve";
-    mbs.open_by_flagged();
   }
   return 0;
 }

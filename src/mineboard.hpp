@@ -267,12 +267,22 @@ public:
   // @brief Returns the amount of tiles on the board.
   constexpr size_type tile_count() const noexcept { return m_width * m_height; }
 
+  // @brief Retunrs the amount of opened tiles on the board.
   size_type open_tiles_count() const noexcept {
     size_type open_tiles = 0;
-    for (auto &tile : m_tiles)
+    for (const auto &tile : m_tiles)
       if (tile.is_open())
         ++open_tiles;
     return open_tiles;
+  }
+
+  // @brief Retunrs the amount of flagged tiles on the board.
+  size_type flagged_tiles_count() const noexcept {
+    size_type flagged_tiles = 0;
+    for (const auto &tile : m_tiles)
+      if (tile.is_flagged())
+        ++flagged_tiles;
+    return flagged_tiles;
   }
 
   // @brief Returns the amount of neighbours tiles have combined.
@@ -587,15 +597,14 @@ private:
     std::stack<size_type> st_neigh;
     // Stores which tiles are already run by the loop.
     std::vector<bool> checked_tiles(tile_count(), false);
-    auto current_idx = idx;
 
-    st_neigh.emplace(current_idx);
+    st_neigh.emplace(idx);
     while (!st_neigh.empty()) {
-      current_idx = st_neigh.top();
+      idx = st_neigh.top();
       st_neigh.pop();
-      checked_tiles[current_idx] = true;
-      rv.emplace_back(current_idx);
-      for (auto n : m_tile_neighbours_bnds(current_idx))
+      checked_tiles[idx] = true;
+      rv.emplace_back(idx);
+      for (auto n : m_tile_neighbours_bnds(idx))
         if (m_tiles[n].is_empty() && !checked_tiles[n])
           st_neigh.emplace(n);
     }

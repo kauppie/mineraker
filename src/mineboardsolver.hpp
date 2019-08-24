@@ -120,10 +120,10 @@ public:
     bool b_state_changed = false;
     // To make things prettier.
     auto &tiles = m_board.m_tiles;
-    if (m_checked_number_tiles.size() != tiles.size())
-      m_checked_number_tiles.resize(tiles.size(), false);
+    if (m_checked_number_tiles.size() != m_board.tile_count())
+      m_checked_number_tiles.resize(m_board.tile_count(), false);
 
-    for (size_type i = 0; i < tiles.size(); ++i) {
+    for (size_type i = 0; i < m_board.tile_count(); ++i) {
       if (tiles[i].is_open() && tiles[i].is_number()) {
         auto flagged_neighbrs_count = flagged_neighbours_count(i);
         // If the amount of flagged tiles equals the value representing mine
@@ -131,9 +131,7 @@ public:
         if (!m_checked_number_tiles[i] &&
             tiles[i].value() == flagged_neighbrs_count) {
           m_board.m_on_next_move(i);
-          if (open_neighbours_count(i) + flagged_neighbrs_count ==
-              m_board.m_neighbour_count(i))
-            m_checked_number_tiles[i] = true;
+          m_checked_number_tiles[i] = true;
           b_state_changed = true;
         }
       }
@@ -148,7 +146,7 @@ public:
                        bool flag_offset = false) {
     auto &tiles = m_board.m_tiles;
     if (flag_offset) {
-      for (size_type i = offset; i < tiles.size(); ++i) {
+      for (size_type i = offset; i < m_board.tile_count(); ++i) {
         auto neighbrs = m_board.m_tile_neighbours_bnds(i);
         BoardTile::value_type flagged_neighbours = 0;
         for (auto n : neighbrs)
@@ -158,7 +156,7 @@ public:
           return i;
       }
     } else {
-      for (size_type i = offset; i < tiles.size(); ++i) {
+      for (size_type i = offset; i < m_board.tile_count(); ++i) {
         if (tiles[i].value() == tile_value)
           return i;
       }
@@ -170,7 +168,7 @@ public:
   auto b_overlap_solve() {
     bool b_state_changed = false;
     auto &tiles = m_board.m_tiles;
-    for (size_type idx = 0; idx < tiles.size(); ++idx) {
+    for (size_type idx = 0; idx < m_board.tile_count(); ++idx) {
       if (tiles[idx].is_open() && tiles[idx].is_number()) {
         auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
         std::vector<size_type> nobrs;
@@ -199,7 +197,7 @@ public:
     bool b_state_changed = false;
     auto &tiles = m_board.m_tiles;
 
-    for (size_type i = 0; i < tiles.size(); ++i) {
+    for (size_type i = 0; i < m_board.tile_count(); ++i) {
       if (tiles[i].is_open() && tiles[i].is_number()) {
         for (auto n : m_board.m_tile_neighbours_bnds(i)) {
           if (tiles[n].is_open() && tiles[n].is_number()) {
@@ -218,14 +216,12 @@ public:
             std::sort(n_neighbrs.begin(), n_neighbrs.end());
 
             std::vector<size_type> union_neighbrs, flag_neighbrs;
-            std::set_union(
-                neighbrs.begin(), neighbrs.end(), n_neighbrs.begin(),
-                n_neighbrs.end(),
-                std::inserter(union_neighbrs, union_neighbrs.begin()));
-            std::set_difference(
-                union_neighbrs.begin(), union_neighbrs.end(),
-                n_neighbrs.begin(), n_neighbrs.end(),
-                std::inserter(flag_neighbrs, flag_neighbrs.begin()));
+            std::set_union(neighbrs.begin(), neighbrs.end(), n_neighbrs.begin(),
+                           n_neighbrs.end(),
+                           std::back_inserter(union_neighbrs));
+            std::set_difference(union_neighbrs.begin(), union_neighbrs.end(),
+                                n_neighbrs.begin(), n_neighbrs.end(),
+                                std::back_inserter(flag_neighbrs));
             if (tiles[i].value() - flagged_neighbours_count(i) -
                         tiles[n].value() + flagged_neighbours_count(n) ==
                     1 &&
@@ -241,12 +237,13 @@ public:
   }
 
   // @brief Opens tiles that can't be mines based on tile value pairs.
+  // @return Whether something was changed.
   auto b_common_solve() {
     bool b_state_changed = false;
     auto &tiles = m_board.m_tiles;
 
     // Iterate over tiles.
-    for (size_type i = 0; i < tiles.size(); ++i) {
+    for (size_type i = 0; i < m_board.tile_count(); ++i) {
       if (tiles[i].is_open() && tiles[i].is_number()) {
         // Iterate over tile's neighbours.
         for (auto n : m_board.m_tile_neighbours_bnds(i)) {
@@ -272,10 +269,9 @@ public:
             // Extract difference from %neighbrs and %n_neighbrs vectors and
             // insert the result to %diff_neighbrs.
             std::vector<size_type> diff_neighbrs;
-            std::set_difference(
-                neighbrs.begin(), neighbrs.end(), n_neighbrs.begin(),
-                n_neighbrs.end(),
-                std::inserter(diff_neighbrs, diff_neighbrs.begin()));
+            std::set_difference(neighbrs.begin(), neighbrs.end(),
+                                n_neighbrs.begin(), n_neighbrs.end(),
+                                std::back_inserter(diff_neighbrs));
 
             // Check whether %n_neighbrs vector is included in the %neighbrs
             // vector and tile's value with flagged neighbours substracted from
@@ -288,7 +284,7 @@ public:
               // Open those tiles that are left over from the possible mine
               // positions.
               for (auto diff : diff_neighbrs) {
-                m_board.m_flood_open(diff);
+                m_board.m_on_next_move(diff);
                 b_state_changed = true;
               }
             }
@@ -300,12 +296,102 @@ public:
   }
 
   // @brief Tries different combinations and flags based on which results did
-  // not fit to the board.
-  auto b_suffle_solve() { return false; }
+  // not fit to the board. Brute-force method.
+  auto b_suffle_solve() {
+    /**
+     * Try different combinations spanning flag based on %mines_left and
+     * comparing the tiles' values whether they are possible. When all
+     * combinations are tried and only 1 solution is found, set those flags.
+     */
 
-  auto b_solve(size_type start_idx) {
-    while (b_overlap_solve() || b_pattern_solve() || b_common_solve())
-      ;
+    auto &tiles = m_board.m_tiles;
+
+    std::vector<size_type> not_opened;
+    for (size_type i = 0; i < m_board.tile_count(); ++i)
+      if (!(tiles[i].is_open() || tiles[i].is_flagged()))
+        not_opened.emplace_back(i);
+
+    std::vector<bool> flag_bits(not_opened.size(), false);
+    // rbegin() instead of begin() -> no sorting
+    std::fill_n(flag_bits.rbegin(),
+                m_board.mine_count() - m_board.flagged_tiles_count(), true);
+
+    if (not_opened.size() > 20)
+      return false;
+
+    std::vector<bool> permu_copy;
+    size_type ok_count = 0;
+
+    do {
+      for (size_type i = 0; i < not_opened.size(); ++i) {
+        if (flag_bits[i])
+          tiles[not_opened[i]].set_flagged();
+        else
+          tiles[not_opened[i]].set_unflagged();
+      }
+      bool ok_combi = true;
+      for (size_type i = 0; i < not_opened.size(); ++i) {
+        for (auto n : m_board.m_tile_neighbours_bnds(not_opened[i]))
+          if (tiles[n].is_open() && tiles[n].is_number() &&
+              tiles[n].value() != flagged_neighbours_count(n))
+            ok_combi = false;
+      }
+      if (ok_combi) {
+        ++ok_count;
+        if (ok_count > 1) {
+          for (size_type i = 0; i < not_opened.size(); ++i)
+            tiles[not_opened[i]].set_unflagged();
+          return false;
+        }
+        permu_copy = flag_bits;
+      }
+    } while (std::next_permutation(flag_bits.begin(), flag_bits.end()));
+    try {
+      for (size_type i = 0; i < not_opened.size(); ++i) {
+        if (permu_copy[i])
+          tiles[not_opened[i]].set_flagged();
+        else
+          tiles[not_opened[i]].set_unflagged();
+      }
+    } catch (...) {
+      std::cerr << "\nerror in final copy";
+    }
+
+    return true;
+  }
+
+  auto b_solve() { /*
+     bool goon = true;
+     decltype(std::chrono::high_resolution_clock::now()) t1, t2, t3, t4;
+     while (goon) {
+       t1 = std::chrono::high_resolution_clock::now();
+       if (!b_overlap_solve()) {
+         t2 = std::chrono::high_resolution_clock::now();
+         if (!b_common_solve()) {
+           t3 = std::chrono::high_resolution_clock::now();
+           if (!b_pattern_solve()) {
+             t4 = std::chrono::high_resolution_clock::now();
+             goon = false;
+           }
+         }
+       }
+       std::cout
+           << "\noverlap solve: "
+           << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
+                  .count()
+           << "\ncommon solve: "
+           << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2)
+                  .count()
+           << "\npattern solve: "
+           << std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3)
+                  .count();
+       open_by_flagged();
+       return b_suffle_solve();
+     }
+ */
+    while (b_overlap_solve() || b_common_solve() || b_pattern_solve())
+      open_by_flagged();
+
     return b_suffle_solve();
   }
 }; // namespace rake

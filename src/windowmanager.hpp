@@ -15,6 +15,7 @@ public:
   // Initializing constructor.
   explicit WindowManager(int width, int height, const std::string &title,
                          uint32_t window_flags) {
+    set_default();
     init(width, height, title, window_flags);
   }
 
@@ -28,10 +29,10 @@ public:
 
   void init(int width, int height, const std::string &title,
             uint32_t window_flags) {
-    // Set default values for all member variables.
-    set_default();
     // Free resources before constructing new ones.
     free();
+    // Set default values for all member variables.
+    set_default();
     m_window =
         SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED,
                          SDL_WINDOWPOS_UNDEFINED, width, height, window_flags);
