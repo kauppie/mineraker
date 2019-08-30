@@ -441,10 +441,10 @@ private:
   // @brief Returns next tile index with the type of mine starting from
   // optional index. If mine not found until the end of the array, returns the
   // maximum value of size_type.
-  size_type m_next_mine(size_type idx) const noexcept {
-    for (; idx < tile_count(); ++idx) {
-      if (m_tiles[idx].is_mine())
-        return idx;
+  size_type m_next_mine(size_type offset) const noexcept {
+    for (; offset < tile_count(); ++offset) {
+      if (m_tiles[offset].is_mine())
+        return offset;
     }
     return std::numeric_limits<size_type>::max();
   }
