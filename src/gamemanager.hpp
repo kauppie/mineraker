@@ -70,9 +70,15 @@ public:
     m_board->flag_tile(m_mouse_to_index(mouse_x, mouse_y));
   }
 
+  // Open all tiles which can be determined by their neighbouring flagged tiles
+  // and their own value.
+  void open_by_flagged() {
+    MineBoardSolver mbs(*m_board);
+    while (mbs.open_by_flagged())
+      ;
+  }
+
   void find_solvable_game(size_type idx) {
-    if (m_board == nullptr)
-      return;
     MineBoardSolver mbs(*m_board);
     size_type i = 0;
     while (m_board->state() != rake::MineBoard::State::GAME_WIN) {
