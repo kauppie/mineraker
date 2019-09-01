@@ -3,6 +3,7 @@
 #include <thread>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #include "gamemanager.hpp"
 #include "mineboard.hpp"
@@ -39,8 +40,6 @@ int main(int argc, char *argv[]) {
   rake::Texture tx(wm, "img/medium.png");
   rake::GameManager gm{&wm, &mb, &tx};
 
-  rake::MineBoardSolver mbs(mb);
-
   mb.init(30, 16, time(0), 99);
 
   SDL_GetWindowDisplayMode(wm, &display_mode);
@@ -55,7 +54,7 @@ int main(int argc, char *argv[]) {
     while (SDL_PollEvent(&event) != 0) {
       if (event.type == SDL_QUIT)
         quit = true;
-      if (event.type == SDL_MOUSEBUTTONDOWN) {
+      else if (event.type == SDL_MOUSEBUTTONDOWN) {
         m_button = SDL_GetMouseState(&mx, &my);
         if (m_button & SDL_BUTTON(SDL_BUTTON_LEFT)) {
           gm.open_from(mx, my);
@@ -64,17 +63,18 @@ int main(int argc, char *argv[]) {
           gm.flag_from(mx, my);
           std::cerr << "\nflag button";
         }
+      } else if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.sym == SDLK_SPACE)
+          gm.open_by_flagged();
       }
       wm.handle_event(&event);
 
       if (mb.state() == rake::MineBoard::State::GAME_WIN) {
         std::cerr << "\nGame WIN";
         mb.init(30, 16, time(0), 99);
-        mbs.reset();
       } else if (mb.state() == rake::MineBoard::State::GAME_LOSE) {
         std::cerr << "\nGame LOSE";
         mb.init(30, 16, time(0), 99);
-        mbs.reset();
       }
     }
 
