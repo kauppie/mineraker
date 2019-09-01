@@ -215,11 +215,8 @@ public:
             std::sort(neighbrs.begin(), neighbrs.end());
             std::sort(n_neighbrs.begin(), n_neighbrs.end());
 
-            std::vector<size_type> union_neighbrs, flag_neighbrs;
-            std::set_union(neighbrs.begin(), neighbrs.end(), n_neighbrs.begin(),
-                           n_neighbrs.end(),
-                           std::back_inserter(union_neighbrs));
-            std::set_difference(union_neighbrs.begin(), union_neighbrs.end(),
+            std::vector<size_type> flag_neighbrs;
+            std::set_difference(neighbrs.begin(), neighbrs.end(),
                                 n_neighbrs.begin(), n_neighbrs.end(),
                                 std::back_inserter(flag_neighbrs));
             if (tiles[i].value() - flagged_neighbours_count(i) -
@@ -346,55 +343,24 @@ public:
         permu_copy = flag_bits;
       }
     } while (std::next_permutation(flag_bits.begin(), flag_bits.end()));
-    try {
-      for (size_type i = 0; i < not_opened.size(); ++i) {
-        if (permu_copy[i])
-          tiles[not_opened[i]].set_flagged();
-        else
-          tiles[not_opened[i]].set_unflagged();
-      }
-    } catch (...) {
-      std::cerr << "\nerror in final copy";
+
+    for (size_type i = 0; i < not_opened.size(); ++i) {
+      if (permu_copy[i])
+        tiles[not_opened[i]].set_flagged();
+      else
+        tiles[not_opened[i]].set_unflagged();
     }
 
     return true;
   }
 
-  auto b_solve() { /*
-     bool goon = true;
-     decltype(std::chrono::high_resolution_clock::now()) t1, t2, t3, t4;
-     while (goon) {
-       t1 = std::chrono::high_resolution_clock::now();
-       if (!b_overlap_solve()) {
-         t2 = std::chrono::high_resolution_clock::now();
-         if (!b_common_solve()) {
-           t3 = std::chrono::high_resolution_clock::now();
-           if (!b_pattern_solve()) {
-             t4 = std::chrono::high_resolution_clock::now();
-             goon = false;
-           }
-         }
-       }
-       std::cout
-           << "\noverlap solve: "
-           << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
-                  .count()
-           << "\ncommon solve: "
-           << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2)
-                  .count()
-           << "\npattern solve: "
-           << std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3)
-                  .count();
-       open_by_flagged();
-       return b_suffle_solve();
-     }
- */
+  auto b_solve() {
     while (b_overlap_solve() || b_common_solve() || b_pattern_solve())
       open_by_flagged();
 
     return b_suffle_solve();
   }
-}; // namespace rake
+};
 
 } // namespace rake
 
