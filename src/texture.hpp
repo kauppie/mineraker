@@ -131,16 +131,18 @@ public:
 private:
   // Frees texture used memory on the GPU.
   void m_free_texture() noexcept {
-    if (m_texture != nullptr)
+    if (m_texture != nullptr) {
       SDL_DestroyTexture(m_texture);
-    m_texture = nullptr;
+      m_texture = nullptr;
+    }
   }
 
   // Frees surface used memory.
   void m_free_surface() noexcept {
-    if (m_surface != nullptr)
+    if (m_surface != nullptr) {
       SDL_FreeSurface(m_surface);
-    m_surface = nullptr;
+      m_surface = nullptr;
+    }
   }
 
   SDL_Texture *m_texture;
