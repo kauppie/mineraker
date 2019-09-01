@@ -10,6 +10,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 namespace rake {
 using size_type = std::size_t;
@@ -26,14 +27,21 @@ bool init(Uint32 sdl_flags, int img_flags) {
     std::cin.get();
     return false;
   }
+  if (TTF_Init() != 0) {
+    std::cerr << "Error on tff initialization: " << SDL_GetError();
+    std::cin.get();
+    return false;
+  }
   return true;
 }
 
 void quit() {
+  TTF_Quit();
   IMG_Quit();
   SDL_Quit();
 }
 
+// Thread-safe registering single function call.
 template <typename T> void call_once(T (*func)()) {
   static std::mutex map_mutex;
   std::lock_guard<std::mutex> lock(map_mutex);
