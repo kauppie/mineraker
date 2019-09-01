@@ -45,7 +45,7 @@ public:
     free();
     m_texture = IMG_LoadTexture(renderer, path.c_str());
     if (m_texture == nullptr) {
-      std::cerr << "Error: Couldn't load image " << path << " to texture\n"
+      std::cerr << "\nError: Couldn't load image " << path << " to texture\n"
                 << SDL_GetError();
       return false;
     }
@@ -58,7 +58,7 @@ public:
     free();
     m_surface = IMG_Load(path.c_str());
     if (m_surface == nullptr) {
-      std::cerr << "Error: Couldn't load image " << path << " to surface\n"
+      std::cerr << "\nError: Couldn't load image " << path << " to surface\n"
                 << SDL_GetError();
       return false;
     }
