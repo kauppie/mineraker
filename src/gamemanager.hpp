@@ -11,6 +11,7 @@
 #include "mineboard.hpp"
 #include "mineboardsolver.hpp"
 #include "mineraker.hpp"
+#include "text.hpp"
 #include "texture.hpp"
 #include "windowmanager.hpp"
 
@@ -41,17 +42,17 @@ public:
 
     m_tiles_from_texture = {
         SDL_Rect{clip_width, 0, clip_width, clip_height},
-        {0, clip_height, clip_width, clip_height},
-        {clip_width, clip_height, clip_width, clip_height},
-        {2 * clip_width, clip_height, clip_width, clip_height},
-        {3 * clip_width, clip_height, clip_width, clip_height},
-        {0, 2 * clip_height, clip_width, clip_height},
-        {clip_width, 2 * clip_height, clip_width, clip_height},
-        {2 * clip_width, 2 * clip_height, clip_width, clip_height},
-        {3 * clip_width, 2 * clip_height, clip_width, clip_height},
-        {0, 0, clip_width, clip_height},
-        {2 * clip_width, 0, clip_width, clip_height},
-        {3 * clip_width, 0, clip_width, clip_height}};
+        SDL_Rect{0, clip_height, clip_width, clip_height},
+        SDL_Rect{clip_width, clip_height, clip_width, clip_height},
+        SDL_Rect{2 * clip_width, clip_height, clip_width, clip_height},
+        SDL_Rect{3 * clip_width, clip_height, clip_width, clip_height},
+        SDL_Rect{0, 2 * clip_height, clip_width, clip_height},
+        SDL_Rect{clip_width, 2 * clip_height, clip_width, clip_height},
+        SDL_Rect{2 * clip_width, 2 * clip_height, clip_width, clip_height},
+        SDL_Rect{3 * clip_width, 2 * clip_height, clip_width, clip_height},
+        SDL_Rect{0, 0, clip_width, clip_height},
+        SDL_Rect{2 * clip_width, 0, clip_width, clip_height},
+        SDL_Rect{3 * clip_width, 0, clip_width, clip_height}};
   }
 
   // Opens specified tile from mouse coordinates.
