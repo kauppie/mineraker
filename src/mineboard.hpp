@@ -132,7 +132,7 @@ private:
   std::mt19937_64::result_type m_seed;
   // Stores the amount of mines on the board.
   size_type m_mine_count;
-  // Represented current state of the board.
+  // Represents current state of the board.
   State m_state;
 
   // Adds control for the Control class. Might not be final.
