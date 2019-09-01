@@ -14,12 +14,15 @@ public:
   enum State { OK, NO_WINDOW, NO_RENDER_TARGET } state;
   // Initializing constructor.
   explicit WindowManager(int width, int height, const std::string &title,
-                         uint32_t window_flags) {
-    set_default();
+                         uint32_t window_flags)
+      : m_window(nullptr), m_renderer(nullptr), m_width(0), m_height(0),
+        m_window_id(0), m_b_fullscreen(false) {
     init(width, height, title, window_flags);
   }
 
-  explicit WindowManager() { set_default(); }
+  explicit WindowManager()
+      : m_window(nullptr), m_renderer(nullptr), m_width(0), m_height(0),
+        m_window_id(0), m_b_fullscreen(false) {}
 
   // Deconstructor. Frees allocated resources.
   ~WindowManager() { free(); }
@@ -29,10 +32,7 @@ public:
 
   void init(int width, int height, const std::string &title,
             uint32_t window_flags) {
-    // Free resources before constructing new ones.
-    free();
-    // Set default values for all member variables.
-    set_default();
+    reset();
     m_window =
         SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED,
                          SDL_WINDOWPOS_UNDEFINED, width, height, window_flags);
@@ -58,16 +58,19 @@ public:
 
   // Frees allocated resources and sets default values.
   void free() {
-    if (m_renderer != nullptr)
+    if (m_renderer != nullptr) {
       SDL_DestroyRenderer(m_renderer);
-    if (m_window != nullptr)
+      m_renderer = nullptr;
+    }
+    if (m_window != nullptr) {
       SDL_DestroyWindow(m_window);
+      m_window = nullptr;
+    }
   }
 
   // Sets all member variables to their default values.
-  void set_default() {
-    m_renderer = nullptr;
-    m_window = nullptr;
+  void reset() {
+    free();
     m_title.clear();
     m_width = 0;
     m_height = 0;
