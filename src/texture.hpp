@@ -79,6 +79,13 @@ public:
     return true;
   }
 
+  void from_surface(SDL_Surface *surface) {
+    if (surface != nullptr) {
+      free();
+      m_surface = surface;
+    }
+  }
+
   // Returns texture pointer.
   auto texture() const noexcept { return m_texture; }
 
