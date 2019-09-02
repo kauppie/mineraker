@@ -79,6 +79,7 @@ public:
     return true;
   }
 
+  // @brief Takes ownership to passed surface.
   void from_surface(SDL_Surface *surface) {
     if (surface != nullptr) {
       free();
