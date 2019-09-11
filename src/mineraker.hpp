@@ -17,22 +17,20 @@ using size_type = std::size_t;
 using diff_type = std::ptrdiff_t;
 
 bool init(Uint32 sdl_flags, int img_flags) {
+  bool state = true;
   if (SDL_Init(sdl_flags) != 0) {
     std::cerr << "Error on SDL2 initialization: " << SDL_GetError();
-    std::cin.get();
-    return false;
+    state = false;
   }
   if (IMG_Init(img_flags) != img_flags) {
     std::cerr << "Error on image initialization: " << IMG_GetError();
-    std::cin.get();
-    return false;
+    state = false;
   }
   if (TTF_Init() != 0) {
     std::cerr << "Error on tff initialization: " << SDL_GetError();
-    std::cin.get();
-    return false;
+    state = false;
   }
-  return true;
+  return state;
 }
 
 void quit() {
