@@ -97,11 +97,10 @@ public:
   void render(SDL_Renderer *renderer, int x, int y, SDL_Rect *clip = nullptr) {
     if (m_texture == nullptr) {
       if (m_surface == nullptr)
-        return;
+        throw std::runtime_error("Texture is not associated with a texture.");
       texture_from_surface(renderer);
     }
     SDL_Rect render_area = {x, y, m_width, m_height};
-
     if (clip != nullptr) {
       render_area.w = clip->w;
       render_area.h = clip->h;
