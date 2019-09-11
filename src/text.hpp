@@ -1,6 +1,7 @@
 #ifndef TEXT_HPP
 #define TEXT_HPP
 
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -43,9 +44,8 @@ public:
     free();
     m_font = TTF_OpenFontIndex(path.c_str(), point_size, index);
 
-    if (m_font == nullptr) {
-      std::cerr << "\nError: Couldn't load font " << path;
-    }
+    if (m_font == nullptr)
+      throw std::runtime_error("Couldn't open file " + path);
   }
 
   // @brief Renders text aliased and blended to the background color.
