@@ -633,7 +633,7 @@ private:
       checked_tiles[idx] = true;
       rv.emplace_back(idx);
       for (auto n : m_tile_neighbours_bnds(idx))
-        if (m_tiles[n].is_empty() && !checked_tiles[n])
+        if (m_tiles[n].is_empty() && !m_tiles[n].is_open() && !checked_tiles[n])
           st_neigh.emplace(n);
     }
     for (auto i : rv)
