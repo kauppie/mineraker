@@ -105,10 +105,12 @@ public:
       std::cerr << "\nError: Incomplete Gamemanager.";
       return;
     }
-    auto tile_edge = std::min(m_window->width() / m_board->width(),
-                              m_window->height() / m_board->height());
-    auto x_offset = (m_window->width() - tile_edge * m_board->width()) / 2,
-         y_offset = (m_window->height() - tile_edge * m_board->height()) / 2;
+    auto window_width = m_window->width(), window_height = m_window->height();
+    auto board_width = m_board->width(), board_height = m_board->height();
+    auto tile_edge =
+        std::min(window_width / board_width, window_height / board_height);
+    auto x_offset = (window_width - tile_edge * board_width) / 2,
+         y_offset = (window_height - tile_edge * board_height) / 2;
     SDL_Rect dst_rect{0, 0, static_cast<int>(tile_edge),
                       static_cast<int>(tile_edge)};
 
@@ -122,8 +124,8 @@ public:
       else
         clip = m_tiles_from_texture[10];
 
-      dst_rect.x = i % m_board->width() * tile_edge + x_offset;
-      dst_rect.y = i / m_board->width() * tile_edge + y_offset;
+      dst_rect.x = i % board_width * tile_edge + x_offset;
+      dst_rect.y = i / board_width * tile_edge + y_offset;
 
       m_tile_texture->render(*m_window, &clip, &dst_rect);
     }
