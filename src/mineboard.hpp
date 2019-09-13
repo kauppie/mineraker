@@ -514,10 +514,38 @@ private:
     return rv;
   }
 
+  // @brief Returns bounds checked neighbours.
+  void m_tile_neighbours_bnds(std::vector<size_type> &vec,
+                              size_type idx) const {
+    const bool up_edge = idx >= m_width && idx < tile_count(),
+               bottom_edge = idx < (tile_count() - m_width);
+    if (up_edge)
+      vec.emplace_back(idx - m_width);
+    if (bottom_edge)
+      vec.emplace_back(idx + m_width);
+    // If (index isn't against the right side wall). These indexes wrap around
+    // the board to the otherside if %idx is next to the left side wall.
+    if (idx % m_width != 0) {
+      if (up_edge)
+        vec.emplace_back(idx - m_width - 1);
+      vec.emplace_back(idx - 1);
+      if (bottom_edge)
+        vec.emplace_back(idx + m_width - 1);
+    }
+    // If (index isn't against the right side wall). These indexes wrap around
+    // the board to the otherside if %idx is next to the right side wall.
+    if (idx % m_width != m_width - 1) {
+      if (up_edge)
+        vec.emplace_back(idx - m_width + 1);
+      vec.emplace_back(idx + 1);
+      if (bottom_edge)
+        vec.emplace_back(idx + m_width + 1);
+    }
+  }
+
   std::vector<pos_type> m_tile_neighbours_bnds(pos_type pos) const {
     std::vector<pos_type> rv;
-    const auto neigh_unbnds = m_tile_neighbours_unbnds(pos);
-    for (const auto &unbnd : neigh_unbnds)
+    for (const auto &unbnd : m_tile_neighbours_unbnds(pos))
       if (m_b_inside_bounds(unbnd))
         rv.emplace_back(unbnd);
     return rv;
@@ -632,8 +660,7 @@ private:
       m_state = GAME_LOSE;
     m_tiles[idx].set_open_unguarded();
   }
-
-}; // namespace rake
+};
 
 } // namespace rake
 
