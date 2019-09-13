@@ -55,6 +55,8 @@ public:
     m_tile_value = other.m_tile_value;
     m_b_flagged = other.m_b_flagged;
     m_b_open = other.m_b_open;
+
+    return *this;
   }
 
   constexpr this_type &operator=(this_type &&other) = delete;
