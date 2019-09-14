@@ -20,7 +20,7 @@ template <typename T> class VecSpaceInstance {
   using pointer_type = std::shared_ptr<vec_type>;
 
 public:
-  explicit VecSpaceInstance(const pointer_type &vec) { m_vector = vec; }
+  explicit VecSpaceInstance(const pointer_type &vec) : m_vector(vec) {}
   ~VecSpaceInstance() { m_vector->resize(0); }
 
   // @brief Index operator to access element at given index.
@@ -72,7 +72,7 @@ template <typename T> class VectorSpace {
   using instance_type = VecSpaceInstance<T>;
 
 public:
-  explicit VectorSpace() : m_reserve_size(0) {}
+  explicit VectorSpace() : m_vec_list(), m_reserve_size(0) {}
   VectorSpace(size_type start_size, size_type reserve_size)
       : m_reserve_size(reserve_size) {
     space_size(start_size);
