@@ -168,6 +168,7 @@ public:
           return i;
       }
     }
+    return tiles.size();
   }
 
   // @brief Compares each tile's value to it's unopened neighbour tile count and
