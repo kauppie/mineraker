@@ -54,29 +54,42 @@ public:
     return count;
   }
 
-  auto flagged_not_neighbours_count(size_type idx) const {
+  auto flagged_not_neighbours_count(size_type idx) {
     size_type count = 0;
-    auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+    auto neighbrs = m_vecspace.acquire();
+    m_board.m_tile_neighbours_bnds(neighbrs.get(), idx);
     for (auto i : neighbrs)
       if (!m_board.m_tiles[i].is_flagged())
         ++count;
     return count;
   }
 
-  auto open_neighbours_count(size_type idx) const {
+  auto open_neighbours_count(size_type idx) {
     size_type count = 0;
-    auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+    auto neighbrs = m_vecspace.acquire();
+    m_board.m_tile_neighbours_bnds(neighbrs.get(), idx);
     for (auto i : neighbrs)
       if (m_board.m_tiles[i].is_open())
         ++count;
     return count;
   }
 
-  auto open_not_neighbours_count(size_type idx) const {
+  auto open_not_neighbours_count(size_type idx) {
     size_type count = 0;
-    auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
+    auto neighbrs = m_vecspace.acquire();
+    m_board.m_tile_neighbours_bnds(neighbrs.get(), idx);
     for (auto i : neighbrs)
       if (!m_board.m_tiles[i].is_open())
+        ++count;
+    return count;
+  }
+
+  auto not_flagged_not_open_neighbours_count(size_type idx) {
+    size_type count = 0;
+    auto neighbrs = m_vecspace.acquire();
+    m_board.m_tile_neighbours_bnds(neighbrs.get(), idx);
+    for (auto i : neighbrs)
+      if (!(m_board.m_tiles[i].is_flagged() || m_board.m_tiles[i].is_open()))
         ++count;
     return count;
   }
@@ -264,56 +277,93 @@ public:
         // Iterate over tile's neighbours.
         for (auto n : i_neighbrs) {
           if (tiles[n].is_open() && tiles[n].is_number()) {
-            // Construct a vector with tile's neighbours indexes that aren't
-            // open nor flagged.
-            auto neighbrs_not_open_flagged = m_vecspace.acquire();
-            auto neighbrs = m_vecspace.acquire();
-            m_board.m_tile_neighbours_bnds(neighbrs.get(), i);
-            for (auto neigh : neighbrs)
-              if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
-                neighbrs_not_open_flagged.emplace_back(neigh);
+            auto n_neighbrs = m_vecspace.acquire();
+            m_board.m_tile_neighbours_bnds(n_neighbrs.get(), n);
+            for (auto k : n_neighbrs) {
+              if (tiles[k].is_open() && tiles[k].is_number()) {
+                // Construct a vector with tile's neighbours indexes that aren't
+                // open nor flagged.
+                auto neighbrs_not_open_flagged = m_vecspace.acquire();
+                auto neighbrs = m_vecspace.acquire();
+                m_board.m_tile_neighbours_bnds(neighbrs.get(), i);
+                for (auto neigh : neighbrs)
+                  if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
+                    neighbrs_not_open_flagged.emplace_back(neigh);
 
-            // Construct a vector with neighbours's neighbours indexes that
-            // aren't open nor flagged.
+                // Reuse temporary vector which isn't used anymore.
+                neighbrs.get().resize(0);
+                m_board.m_tile_neighbours_bnds(neighbrs.get(), n);
+                auto n_neighbrs_not_open_flagged = m_vecspace.acquire();
+                for (auto neigh : neighbrs)
+                  if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
+                    n_neighbrs_not_open_flagged.emplace_back(neigh);
 
-            // Reuse temporary variable which isn't used anymore.
-            neighbrs.get().resize(0);
-            m_board.m_tile_neighbours_bnds(neighbrs.get(), n);
-            auto n_neighbrs_not_open_flagged = m_vecspace.acquire();
-            for (auto neigh : neighbrs)
-              if (!(tiles[neigh].is_open() || tiles[neigh].is_flagged()))
-                n_neighbrs_not_open_flagged.emplace_back(neigh);
+                neighbrs.get().resize(0);
+                m_board.m_tile_neighbours_bnds(neighbrs.get(), k);
+                auto k_neighbrs_not_open_flagged = m_vecspace.acquire();
+                for (auto neigh : neighbrs)
+                  if (tiles[neigh].is_open() && tiles[neigh].is_number())
+                    k_neighbrs_not_open_flagged.emplace_back(neigh);
 
-            // %std::set_difference requires sorted data as parameter.
-            std::sort(neighbrs_not_open_flagged.begin(),
-                      neighbrs_not_open_flagged.end());
-            std::sort(n_neighbrs_not_open_flagged.begin(),
-                      n_neighbrs_not_open_flagged.end());
+                // %std::set_difference requires sorted data as parameter.
+                std::sort(neighbrs_not_open_flagged.begin(),
+                          neighbrs_not_open_flagged.end());
+                std::sort(n_neighbrs_not_open_flagged.begin(),
+                          n_neighbrs_not_open_flagged.end());
+                std::sort(k_neighbrs_not_open_flagged.begin(),
+                          k_neighbrs_not_open_flagged.end());
 
-            // Extract difference from %neighbrs and %n_neighbrs vectors and
-            // insert the result to %diff_neighbrs.
-            auto diff_neighbrs = m_vecspace.acquire();
-            std::set_difference(neighbrs_not_open_flagged.begin(),
-                                neighbrs_not_open_flagged.end(),
-                                n_neighbrs_not_open_flagged.begin(),
-                                n_neighbrs_not_open_flagged.end(),
-                                std::back_inserter(diff_neighbrs.get()));
+                // Extract difference from %neighbrs and %n_neighbrs vectors and
+                // insert the result to %diff_neighbrs.
+                auto n_diff_neighbrs = m_vecspace.acquire();
+                std::set_difference(neighbrs_not_open_flagged.begin(),
+                                    neighbrs_not_open_flagged.end(),
+                                    n_neighbrs_not_open_flagged.begin(),
+                                    n_neighbrs_not_open_flagged.end(),
+                                    std::back_inserter(n_diff_neighbrs.get()));
 
-            // Check whether %n_neighbrs vector is included in the %neighbrs
-            // vector and tile's value with flagged neighbours substracted from
-            // it equals neighbour's value, also with flagged neighbours
-            // substracted from it.
-            if (std::includes(neighbrs_not_open_flagged.begin(),
-                              neighbrs_not_open_flagged.end(),
-                              n_neighbrs_not_open_flagged.begin(),
-                              n_neighbrs_not_open_flagged.end()) &&
-                tiles[i].value() - flagged_neighbours_count(i) ==
-                    tiles[n].value() - flagged_neighbours_count(n)) {
-              // Open those tiles that are left over from the possible mine
-              // positions.
-              for (auto diff : diff_neighbrs) {
-                m_board.m_on_next_move(diff);
-                b_state_changed = true;
+                auto k_diff_neighbrs = m_vecspace.acquire();
+                std::set_difference(neighbrs_not_open_flagged.begin(),
+                                    neighbrs_not_open_flagged.end(),
+                                    k_neighbrs_not_open_flagged.begin(),
+                                    k_neighbrs_not_open_flagged.end(),
+                                    std::back_inserter(k_diff_neighbrs.get()));
+
+                // Check whether %n_neighbrs vector is included in the %neighbrs
+                // vector and tile's value with flagged neighbours substracted
+                // from it equals neighbour's value, also with flagged
+                // neighbours substracted from it.
+                if (std::includes(neighbrs_not_open_flagged.begin(),
+                                  neighbrs_not_open_flagged.end(),
+                                  n_neighbrs_not_open_flagged.begin(),
+                                  n_neighbrs_not_open_flagged.end()) &&
+                    tiles[i].value() - flagged_neighbours_count(i) ==
+                        tiles[n].value() - flagged_neighbours_count(n)) {
+                  // Open those tiles that are left over from the possible mine
+                  // positions.
+                  for (auto diff : n_diff_neighbrs) {
+                    m_board.m_on_next_move(diff);
+                    b_state_changed = true;
+                  }
+                }
+
+                if (std::includes(neighbrs_not_open_flagged.begin(),
+                                  neighbrs_not_open_flagged.end(),
+                                  k_neighbrs_not_open_flagged.begin(),
+                                  k_neighbrs_not_open_flagged.end()) &&
+                    tiles[i].value() - flagged_neighbours_count(i) == 1 &&
+                    tiles[k].value() - flagged_neighbours_count(k) == 1) {
+                  for (auto diff : k_diff_neighbrs) {
+                    m_board.m_on_next_move(diff);
+                    if (m_board.state() == MineBoard::State::GAME_LOSE)
+                      std::cerr << "i: " << i << " "
+                                << "k: " << k << " "
+                                << "diff: " << diff << " "
+                                << "k_neighbrs_not_open_flagged.size(): "
+                                << k_neighbrs_not_open_flagged.size() << "\n";
+                    b_state_changed = true;
+                  }
+                }
               }
             }
           }
