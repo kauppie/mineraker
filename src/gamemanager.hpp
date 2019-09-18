@@ -99,7 +99,7 @@ public:
   }
 
   // Renders the board to the window.
-  void render() {
+  void render() const {
     if (m_window == nullptr || m_board == nullptr ||
         m_tile_texture == nullptr) {
       std::cerr << "\nError: Incomplete Gamemanager.";
@@ -127,7 +127,7 @@ public:
       dst_rect.x = i % board_width * tile_edge + x_offset;
       dst_rect.y = i / board_width * tile_edge + y_offset;
 
-      m_tile_texture->render(*m_window, &clip, &dst_rect);
+      m_tile_texture->render(m_window->renderer(), &clip, &dst_rect);
     }
   }
 
