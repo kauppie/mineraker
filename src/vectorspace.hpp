@@ -53,9 +53,9 @@ public:
         return vec_p;
       }
     }
-    m_vec_list.emplace_back(std::make_shared<vec_type>());
-    m_vec_list.back()->reserve(m_reserve_size);
-    return m_vec_list.back();
+    auto back = m_vec_list.emplace_back(std::make_shared<vec_type>());
+    back->reserve(m_reserve_size);
+    return back;
   }
 
 private:
