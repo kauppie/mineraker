@@ -105,44 +105,56 @@ public:
       std::cerr << "\nError: Incomplete Gamemanager.";
       return;
     }
-    auto window_width = m_window->width(), window_height = m_window->height();
-    auto board_width = m_board->width(), board_height = m_board->height();
-    auto tile_edge =
-        std::min(window_width / board_width, window_height / board_height);
-    auto x_offset = (window_width - tile_edge * board_width) / 2,
-         y_offset = (window_height - tile_edge * board_height) / 2;
-    SDL_Rect dst_rect{0, 0, static_cast<int>(tile_edge),
-                      static_cast<int>(tile_edge)};
-
     for (size_type i = 0; i < m_board->tile_count(); ++i) {
-      auto tile = m_board->m_tiles[i];
-      SDL_Rect clip;
-      if (tile.is_open())
-        clip = m_tiles_from_texture[tile.value()];
-      else if (tile.is_flagged())
-        clip = m_tiles_from_texture[11];
-      else
-        clip = m_tiles_from_texture[10];
-
-      dst_rect.x = i % board_width * tile_edge + x_offset;
-      dst_rect.y = i / board_width * tile_edge + y_offset;
+      auto clip = texture_clip_tile(m_board->m_tiles[i]);
+      auto dst_rect = tile_dest(i);
 
       m_tile_texture->render(m_window->renderer(), &clip, &dst_rect);
     }
   }
 
 private:
-  size_type m_mouse_to_index(int mouse_x, int mouse_y) {
-    auto tile_edge = std::min(m_window->width() / m_board->width(),
-                              m_window->height() / m_board->height());
-    auto x_offset = (m_window->width() - tile_edge * m_board->width()) / 2;
+  SDL_Rect texture_clip_tile(const BoardTile &tile) const {
+    SDL_Rect clip;
+    if (tile.is_open())
+      clip = m_tiles_from_texture[tile.value()];
+    else if (tile.is_flagged())
+      clip = m_tiles_from_texture[11];
+    else
+      clip = m_tiles_from_texture[10];
+    return clip;
+  }
+
+  size_type m_mouse_to_index(int mouse_x, int mouse_y) const {
+    auto tile_edge = tiles_edge();
+    auto x_offset = x_tile_offset();
     // If %x is out of bounds, return result out of bounds.
     if (mouse_x >= m_window->width() - x_offset)
       return m_board->width() * m_board->height();
-    auto y_offset = (m_window->height() - tile_edge * m_board->height()) / 2;
     auto x = (mouse_x - x_offset) / tile_edge;
-    auto y = (mouse_y - y_offset) / tile_edge;
+    auto y = (mouse_y - y_tile_offset()) / tile_edge;
     return y * m_board->width() + x;
+  }
+
+  size_type x_tile_offset() const {
+    return (m_window->width() - tiles_edge() * m_board->width()) / 2;
+  }
+
+  size_type y_tile_offset() const {
+    return (m_window->height() - tiles_edge() * m_board->height()) / 2;
+  }
+
+  size_type tiles_edge() const {
+    return std::min(m_window->width() / m_board->width(),
+                    m_window->height() / m_board->height());
+  }
+
+  SDL_Rect tile_dest(size_type idx) const {
+    auto ww = m_window->width(), wh = m_window->height();
+    auto bw = m_board->width(), bh = m_board->height();
+    auto edge = tiles_edge();
+    return {idx % bw * edge + x_tile_offset(),
+            idx / bw * edge + y_tile_offset(), edge, edge};
   }
 
   WindowManager *m_window;
