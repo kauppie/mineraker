@@ -119,6 +119,7 @@ public:
   static const unsigned char TILE_NEIGHBOUR_COUNT = 8;
 
 private:
+public:
   // Default container for the board tiles.
   std::vector<tile_type> m_tiles;
   // Vector to store already opened empty tiles. Speeds up empty area opening
@@ -291,6 +292,7 @@ public:
   }
 
 private:
+public:
   // @brief Converts pos_type to single index.
   constexpr size_type m_to_idx(pos_type pos) const noexcept {
     return pos.y * m_width + pos.x;

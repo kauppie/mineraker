@@ -20,7 +20,7 @@ public:
     ss << "[" << sb.mine_count() << "][" << sb.seed() << "];";
     return ss.str();
   }
-  static MineBoard parse(std::string_view view) { return MineBoard{}; }
+  // static MineBoard parse(std::string_view view) { return MineBoard{}; }
 };
 
 } // namespace rake

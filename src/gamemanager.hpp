@@ -58,9 +58,7 @@ public:
   // Opens specified tile from mouse coordinates.
   void open_from(int mouse_x, int mouse_y) {
     size_type idx = m_mouse_to_index(mouse_x, mouse_y);
-    bool was_first = false;
-    if (m_board->state() == rake::MineBoard::State::FIRST_MOVE)
-      was_first = true;
+    bool was_first = m_board->state() == rake::MineBoard::State::FIRST_MOVE;
     m_board->open_tile(idx);
     if (was_first)
       find_solvable_game(idx);
