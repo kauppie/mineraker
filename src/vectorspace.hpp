@@ -59,7 +59,7 @@ public:
   }
 
 private:
-  std::vector<std::shared_ptr<vec_type>> m_vec_list;
+  std::vector<pointer_type> m_vec_list;
   size_type m_reserve_size;
 };
 } // namespace rake
