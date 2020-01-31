@@ -18,20 +18,20 @@ using size_type = std::size_t;
 using diff_type = std::ptrdiff_t;
 
 bool init(Uint32 sdl_flags, int img_flags) {
-  bool state = true;
+  bool success = true;
   if (SDL_Init(sdl_flags) != 0) {
     std::cerr << "Error on SDL2 initialization: " << SDL_GetError();
-    state = false;
+    success = false;
   }
   if (IMG_Init(img_flags) != img_flags) {
     std::cerr << "Error on image initialization: " << IMG_GetError();
-    state = false;
+    success = false;
   }
   if (TTF_Init() != 0) {
     std::cerr << "Error on tff initialization: " << SDL_GetError();
-    state = false;
+    success = false;
   }
-  return state;
+  return success;
 }
 
 void quit() {
@@ -44,16 +44,19 @@ void quit() {
 template <typename T> void call_once(T (*func)()) {
   static std::mutex map_mutex;
   std::lock_guard<std::mutex> lock(map_mutex);
-  static std::unordered_map<decltype(func), bool> is_used_map;
-  if (is_used_map.find(func) == is_used_map.end()) {
-    func();
-    is_used_map.insert({func, true});
-  }
+  static std::vector<decltype(func)> is_used;
+
+  for (const auto &fun : is_used)
+    if (fun == func)
+      return;
+
+  func();
+  is_used.push_back(func);
 }
 
-static constexpr const int SCREEN_WIDTH = 640, SCREEN_HEIGHT = 480;
+static constexpr int SCREEN_WIDTH = 640, SCREEN_HEIGHT = 480;
 // Tile input texture dimensions used for clipping individual textures.
-static constexpr const int TEXTURE_WIDTH_COUNT = 4, TEXTURE_HEIGHT_COUNT = 3;
+static constexpr int TEXTURE_WIDTH_COUNT = 4, TEXTURE_HEIGHT_COUNT = 3;
 
 } // namespace rake
 
