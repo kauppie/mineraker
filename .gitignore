@@ -32,4 +32,8 @@
 *.app
 
 # Folders
-tests
+build
+
+# VSCode specific
+*.code-workspace
+.vscode
