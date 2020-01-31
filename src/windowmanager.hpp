@@ -24,7 +24,6 @@ public:
       : m_window(nullptr), m_renderer(nullptr), m_width(0), m_height(0),
         m_window_id(0), m_b_fullscreen(false) {}
 
-  // Deconstructor. Frees allocated resources.
   ~WindowManager() { free(); }
 
   operator SDL_Window *() const { return m_window; }
@@ -86,7 +85,7 @@ public:
         SDL_GetWindowSize(m_window, &m_width, &m_height);
         break;
       case SDL_WINDOWEVENT_CLOSE:
-        free(); // Prefer to set window hidden.
+        free();
         break;
       default:
         break;
