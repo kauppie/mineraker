@@ -13,7 +13,7 @@ class WindowManager {
 public:
   enum State { OK, NO_WINDOW, NO_RENDER_TARGET } state;
   // Initializing constructor.
-  explicit WindowManager(int width, int height, const std::string &title,
+  explicit WindowManager(int width, int height, const std::string& title,
                          uint32_t window_flags)
       : m_window(nullptr), m_renderer(nullptr), m_width(0), m_height(0),
         m_window_id(0), m_b_fullscreen(false) {
@@ -26,10 +26,10 @@ public:
 
   ~WindowManager() { free(); }
 
-  operator SDL_Window *() const { return m_window; }
-  operator SDL_Renderer *() const { return m_renderer; }
+  operator SDL_Window*() const { return m_window; }
+  operator SDL_Renderer*() const { return m_renderer; }
 
-  void init(int width, int height, const std::string &title,
+  void init(int width, int height, const std::string& title,
             uint32_t window_flags) {
     reset();
     m_window =
@@ -77,7 +77,7 @@ public:
     m_b_fullscreen = false;
   }
 
-  void handle_event(const SDL_Event *event) {
+  void handle_event(const SDL_Event* event) {
     if (event->type == SDL_WINDOWEVENT &&
         event->window.windowID == m_window_id) {
       switch (event->window.event) {
@@ -96,12 +96,10 @@ public:
   auto window() const { return m_window; }
   auto renderer() const { return m_renderer; }
 
-  // Returns old title and sets new title.
-  auto title(const std::string &title) {
+  // Sets new title for the window.
+  void title(const std::string& title) {
     SDL_SetWindowTitle(m_window, title.c_str());
-    const auto &old = m_title;
     m_title = title;
-    return old;
   }
   // Returns title of the window.
   auto title() const { return m_title; }
@@ -145,8 +143,8 @@ public:
   void reset_size() { SDL_RestoreWindow(m_window); }
 
 private:
-  SDL_Window *m_window;
-  SDL_Renderer *m_renderer;
+  SDL_Window* m_window;
+  SDL_Renderer* m_renderer;
   std::string m_title;
   int m_width, m_height;
   uint32_t m_window_id;

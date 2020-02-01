@@ -41,17 +41,17 @@ public:
       : m_tile_value(m_tile_value), m_b_flagged(is_flagged), m_b_open(is_open) {
   }
   // @brief Copy constructor.
-  constexpr BoardTile(const this_type &other)
+  constexpr BoardTile(const this_type& other)
       : m_tile_value(other.m_tile_value), m_b_flagged(other.m_b_flagged),
         m_b_open(other.m_b_open) {}
   // Can use rvalue references on bit fields.
-  constexpr BoardTile(this_type &&other) = delete;
+  constexpr BoardTile(this_type&& other) = delete;
   // @brief Move constructor. Is deleted for usage of bit field member
   // variables.
   // @brief Deconstructor.
   ~BoardTile() noexcept {}
 
-  constexpr this_type &operator=(const this_type &other) {
+  constexpr this_type& operator=(const this_type& other) {
     m_tile_value = other.m_tile_value;
     m_b_flagged = other.m_b_flagged;
     m_b_open = other.m_b_open;
@@ -59,7 +59,7 @@ public:
     return *this;
   }
 
-  constexpr this_type &operator=(this_type &&other) = delete;
+  constexpr this_type& operator=(this_type&& other) = delete;
 
   // @brief Sets %m_tile_value to %new_value and returns %m_tile_value before
   // setting.

@@ -25,14 +25,14 @@ class GameManager {
 public:
   explicit GameManager()
       : m_window(nullptr), m_board(nullptr), m_tile_texture(nullptr) {}
-  explicit GameManager(WindowManager *windowmanager, MineBoard *mineboard,
-                       Texture *tile_texture) {
+  explicit GameManager(WindowManager* windowmanager, MineBoard* mineboard,
+                       Texture* tile_texture) {
     init(windowmanager, mineboard, tile_texture);
   }
   ~GameManager() {}
 
-  void init(WindowManager *windowmanager, MineBoard *mineboard,
-            Texture *tile_texture) {
+  void init(WindowManager* windowmanager, MineBoard* mineboard,
+            Texture* tile_texture) {
     m_window = windowmanager;
     m_board = mineboard;
     m_tile_texture = tile_texture;
@@ -112,7 +112,7 @@ public:
   }
 
 private:
-  SDL_Rect texture_clip_tile(const BoardTile &tile) const {
+  SDL_Rect texture_clip_tile(const BoardTile& tile) const {
     SDL_Rect clip;
     if (tile.is_open())
       clip = m_tiles_from_texture[tile.value()];
@@ -155,9 +155,9 @@ private:
             idx / bw * edge + y_tile_offset(), edge, edge};
   }
 
-  WindowManager *m_window;
-  MineBoard *m_board;
-  Texture *m_tile_texture;
+  WindowManager* m_window;
+  MineBoard* m_board;
+  Texture* m_tile_texture;
 
   // Array to store texture clipping coordinates.
   std::array<SDL_Rect, TEXTURE_WIDTH_COUNT * TEXTURE_HEIGHT_COUNT>

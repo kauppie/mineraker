@@ -23,7 +23,7 @@ public:
   Text() : m_font(nullptr) {}
 
   // @brief Constructor which loads a font.
-  Text(const std::string &path, int point_size) : m_font(nullptr) {
+  Text(const std::string& path, int point_size) : m_font(nullptr) {
     load_font(path, point_size);
   }
 
@@ -31,7 +31,7 @@ public:
   ~Text() noexcept { free(); }
 
   // @brief Loads font from specified path and using %point_size argument.
-  void load_font(const std::string &path, int point_size) {
+  void load_font(const std::string& path, int point_size) {
     free();
     m_font = TTF_OpenFont(path.c_str(), point_size);
 
@@ -42,7 +42,7 @@ public:
 
   // @brief Loads font from specified path and using %point_size argument.
   // %index points to the type of font typeface to use -> italic, bold etc.
-  void load_font(const std::string &path, int point_size, long index) {
+  void load_font(const std::string& path, int point_size, long index) {
     free();
     m_font = TTF_OpenFontIndex(path.c_str(), point_size, index);
 
@@ -78,7 +78,7 @@ public:
   }
 
 private:
-  TTF_Font *m_font;
+  TTF_Font* m_font;
   rake::Texture m_texture_text;
   std::string m_text;
   SDL_Color m_color;

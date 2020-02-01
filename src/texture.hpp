@@ -16,17 +16,17 @@ class Texture {
   using this_type = Texture;
 
 public:
-  Texture(const this_type &) = delete;
-  Texture(this_type &&) = delete;
+  Texture(const this_type&) = delete;
+  Texture(this_type&&) = delete;
 
   // Constructor which uses %texture_from_file.
-  explicit Texture(SDL_Renderer *renderer, const std::string &path)
+  explicit Texture(SDL_Renderer* renderer, const std::string& path)
       : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {
     texture_from_file(renderer, path);
   }
 
   // Constructor which uses %surface_from_file.
-  explicit Texture(const std::string &path)
+  explicit Texture(const std::string& path)
       : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {
     surface_from_file(path);
   }
@@ -36,12 +36,12 @@ public:
       : m_texture(nullptr), m_surface(nullptr), m_width(0), m_height(0) {}
   ~Texture() noexcept { free(); }
 
-  operator SDL_Texture *() const { return m_texture; }
-  operator SDL_Surface *() const { return m_surface; }
+  operator SDL_Texture*() const { return m_texture; }
+  operator SDL_Surface*() const { return m_surface; }
 
   // Returns whether image loading and texture assignment succesfully completed.
   // Assigns texture to specified renderer.
-  bool texture_from_file(SDL_Renderer *renderer, const std::string &path) {
+  bool texture_from_file(SDL_Renderer* renderer, const std::string& path) {
     free();
     m_texture = IMG_LoadTexture(renderer, path.c_str());
     if (m_texture == nullptr) {
@@ -54,7 +54,7 @@ public:
   }
 
   // Returns whether image loading and surface assignment succesfully completed.
-  bool surface_from_file(const std::string &path) {
+  bool surface_from_file(const std::string& path) {
     free();
     m_surface = IMG_Load(path.c_str());
     if (m_surface == nullptr) {
@@ -68,7 +68,7 @@ public:
   }
 
   // Returns whether surface conversion to texture succesfully completed.
-  bool texture_from_surface(SDL_Renderer *renderer) {
+  bool texture_from_surface(SDL_Renderer* renderer) {
     m_free_texture();
     m_texture = SDL_CreateTextureFromSurface(renderer, m_surface);
     if (m_texture == nullptr) {
@@ -80,7 +80,7 @@ public:
   }
 
   // @brief Takes ownership to passed surface.
-  void from_surface(SDL_Surface *surface) {
+  void from_surface(SDL_Surface* surface) {
     if (surface != nullptr) {
       free();
       m_surface = surface;
@@ -94,7 +94,7 @@ public:
   auto surface() const noexcept { return m_surface; }
 
   // Renders the texture.
-  void render(SDL_Renderer *renderer, int x, int y, SDL_Rect *clip = nullptr) {
+  void render(SDL_Renderer* renderer, int x, int y, SDL_Rect* clip = nullptr) {
     if (m_texture == nullptr) {
       if (m_surface == nullptr)
         throw std::runtime_error("Texture is not associated with a texture.");
@@ -109,7 +109,7 @@ public:
   }
 
   // Renders the texture.
-  void render(SDL_Renderer *renderer, SDL_Rect *src, SDL_Rect *dst) {
+  void render(SDL_Renderer* renderer, SDL_Rect* src, SDL_Rect* dst) {
     if (m_texture == nullptr) {
       if (m_surface == nullptr)
         return;
@@ -152,8 +152,8 @@ private:
     }
   }
 
-  SDL_Texture *m_texture;
-  SDL_Surface *m_surface;
+  SDL_Texture* m_texture;
+  SDL_Surface* m_surface;
   int m_width, m_height;
 };
 

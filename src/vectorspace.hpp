@@ -9,13 +9,7 @@
 
 namespace rake {
 
-// VectorSpace declaration.
-template <typename T> class VectorSpace;
-
-/**
- * TODO: Informational comment.
- */
-template <typename T> class VectorSpace {
+template<typename T> class VectorSpace {
   using vec_type = std::vector<T>;
   using pointer_type = std::shared_ptr<vec_type>;
 
@@ -28,7 +22,7 @@ public:
   ~VectorSpace() {}
 
   void vectors_reserve(size_type reserve) {
-    for (auto &vec_p : m_vec_list)
+    for (auto& vec_p : m_vec_list)
       if (vec_p)
         vec_p->reserve(reserve);
     m_reserve_size = reserve;
@@ -38,7 +32,7 @@ public:
 
   void space_size(size_type vec_num) {
     m_vec_list.resize(vec_num);
-    for (auto &vec_p : m_vec_list)
+    for (auto& vec_p : m_vec_list)
       vec_p = std::make_shared<vec_type>();
     if (m_reserve_size > 0)
       vectors_reserve(m_reserve_size);
@@ -47,7 +41,7 @@ public:
   auto space_size() const { return m_vec_list.size(); }
 
   pointer_type acquire() {
-    for (auto &vec_p : m_vec_list) {
+    for (auto& vec_p : m_vec_list) {
       if (vec_p.use_count() == 1) {
         vec_p->resize(0);
         return vec_p;

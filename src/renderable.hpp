@@ -14,11 +14,11 @@ public:
   explicit Renderable() : m_texture(nullptr) {}
   ~Renderable() noexcept { free_texture(); }
 
-  operator SDL_Texture *() const { return m_texture; }
+  operator SDL_Texture*() const { return m_texture; }
 
   auto texture() const { return m_texture; }
 
-  void texture(SDL_Texture *texture) {
+  void texture(SDL_Texture* texture) {
     if (texture != nullptr) {
       free_texture();
       m_texture = texture;
@@ -33,7 +33,7 @@ public:
   virtual void render() = 0;
 
 protected:
-  SDL_Texture *m_texture;
+  SDL_Texture* m_texture;
 };
 
 } // namespace rake

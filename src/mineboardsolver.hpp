@@ -20,7 +20,7 @@ class MineBoardSolver {
 private:
   using this_type = MineBoardSolver;
 
-  MineBoard &m_board;
+  MineBoard& m_board;
 
   // Keep vector of checked numbered tiles for %open_by_flagged to not bother
   // with already checked ones.
@@ -29,14 +29,14 @@ private:
   VectorSpace<size_type> m_vecspace;
 
 public:
-  MineBoardSolver(MineBoard &board) : m_board(board) {
+  MineBoardSolver(MineBoard& board) : m_board(board) {
     m_vecspace.space_size(8);
     m_vecspace.vectors_reserve(8);
   }
-  MineBoardSolver(const this_type &other)
+  MineBoardSolver(const this_type& other)
       : m_board(other.m_board),
         m_checked_number_tiles(other.m_checked_number_tiles) {}
-  MineBoardSolver(this_type &&) = delete;
+  MineBoardSolver(this_type&&) = delete;
   ~MineBoardSolver() noexcept {}
 
   void reset() {
@@ -105,8 +105,8 @@ public:
 
   // @brief Returns intersection or common neighbour indexes between the two
   // indexes. Expects vectors to be in sorted order.
-  static auto common_idxs(const std::vector<size_type> &vec1,
-                          const std::vector<size_type> &vec2) {
+  static auto common_idxs(const std::vector<size_type>& vec1,
+                          const std::vector<size_type>& vec2) {
     std::vector<size_type> rv;
     std::set_intersection(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(),
                           std::back_inserter(rv));
@@ -115,8 +115,8 @@ public:
 
   // @brief Returns intersection or common neighbour positions between the two
   // positions. Expects vectors to be in sorted order.
-  static auto common_poss(const std::vector<MineBoard::pos_type> &vec1,
-                          const std::vector<MineBoard::pos_type> &vec2) {
+  static auto common_poss(const std::vector<MineBoard::pos_type>& vec1,
+                          const std::vector<MineBoard::pos_type>& vec2) {
     std::vector<MineBoard::pos_type> rv;
     std::set_intersection(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(),
                           std::back_inserter(rv), MineBoard::compare);
@@ -148,7 +148,7 @@ public:
   bool open_by_flagged() {
     bool b_state_changed = false;
     // To make things prettier.
-    auto &tiles = m_board.m_tiles;
+    auto& tiles = m_board.m_tiles;
     if (m_checked_number_tiles.size() != m_board.tile_count())
       m_checked_number_tiles.resize(m_board.tile_count(), false);
 
@@ -172,7 +172,7 @@ public:
   // flag those if they are equal.
   auto b_overlap_solve() {
     bool b_state_changed = false;
-    auto &tiles = m_board.m_tiles;
+    auto& tiles = m_board.m_tiles;
     for (size_type idx = 0; idx < m_board.tile_count(); ++idx) {
       if (tiles[idx].is_open() && tiles[idx].is_number()) {
         // auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
@@ -181,7 +181,7 @@ public:
         // std::vector<size_type> nobrs;
         auto nobrs = m_vecspace.acquire();
         // Finds not opened neighbours of current tile.
-        for (auto &i : *neighbrs.get())
+        for (auto& i : *neighbrs.get())
           if (!tiles[i].is_open())
             nobrs->emplace_back(i);
         // If tile's value equals the number of unopened neighbours, those
@@ -203,7 +203,7 @@ public:
   // @todo Comment steps in the algorithm.
   auto b_pattern_solve() {
     bool b_state_changed = false;
-    auto &tiles = m_board.m_tiles;
+    auto& tiles = m_board.m_tiles;
 
     for (size_type i = 0; i < m_board.tile_count(); ++i) {
       if (tiles[i].is_open() && tiles[i].is_number()) {
@@ -251,7 +251,7 @@ public:
   // @return Whether something was changed.
   auto b_common_solve() {
     bool b_state_changed = false;
-    auto &tiles = m_board.m_tiles;
+    auto& tiles = m_board.m_tiles;
 
     // Iterate over tiles.
     for (size_type i = 0; i < m_board.tile_count(); ++i) {
@@ -328,7 +328,7 @@ public:
      * combinations are tried and only 1 solution is found, set those flags.
      */
 
-    auto &tiles = m_board.m_tiles;
+    auto& tiles = m_board.m_tiles;
 
     std::vector<size_type> not_opened;
     for (size_type i = 0; i < m_board.tile_count(); ++i)

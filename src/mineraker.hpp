@@ -41,12 +41,12 @@ void quit() {
 }
 
 // Thread-safe registering single function call.
-template <typename T> void call_once(T (*func)()) {
+template<typename T> void call_once(T (*func)()) {
   static std::mutex map_mutex;
   std::lock_guard<std::mutex> lock(map_mutex);
   static std::vector<decltype(func)> is_used;
 
-  for (const auto &fun : is_used)
+  for (const auto& fun : is_used)
     if (fun == func)
       return;
 
