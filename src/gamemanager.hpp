@@ -127,7 +127,7 @@ private:
     auto tile_edge = tiles_edge();
     auto x_offset = x_tile_offset();
     // If %x is out of bounds, return result out of bounds.
-    if (mouse_x >= m_window->width() - x_offset)
+    if (mouse_x >= m_window->width() - static_cast<int>(x_offset))
       return m_board->width() * m_board->height();
     auto x = (mouse_x - x_offset) / tile_edge;
     auto y = (mouse_y - y_tile_offset()) / tile_edge;
@@ -148,11 +148,11 @@ private:
   }
 
   SDL_Rect tile_dest(size_type idx) const {
-    auto ww = m_window->width(), wh = m_window->height();
-    auto bw = m_board->width(), bh = m_board->height();
+    auto bw = m_board->width();
     auto edge = tiles_edge();
-    return {idx % bw * edge + x_tile_offset(),
-            idx / bw * edge + y_tile_offset(), edge, edge};
+    return {static_cast<int>(idx % bw * edge + x_tile_offset()),
+            static_cast<int>(idx / bw * edge + y_tile_offset()),
+            static_cast<int>(edge), static_cast<int>(edge)};
   }
 
   WindowManager* m_window;

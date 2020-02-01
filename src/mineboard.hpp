@@ -437,7 +437,8 @@ public:
     return index < tile_count();
   }
   constexpr bool m_b_inside_bounds(pos_type pos) const noexcept {
-    return pos.x >= 0 && pos.x < m_width && pos.y >= 0 && pos.y < m_height;
+    return pos.x >= 0 && pos.x < static_cast<diff_type>(m_width) &&
+           pos.y >= 0 && pos.y < static_cast<diff_type>(m_height);
   }
 
   // @brief Returns next tile index with the type of mine starting from
