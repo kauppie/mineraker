@@ -1,5 +1,5 @@
 # Mineraker
-Mineraker is Minesweeper derived game, but only a *pre-alpha like* version is available, at this time.
+Mineraker is derived from the Minesweeper game, but only a *pre-alpha like* version is available, at this time.
 
 ## Installing
 If you already have CMake and SDL2 installed, you can skip to building.
