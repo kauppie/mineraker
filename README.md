@@ -2,7 +2,7 @@
 Mineraker is derived from the Minesweeper game, but only a *pre-alpha like* version is available, at this time.
 
 ## Installing
-If you already have CMake and SDL2 installed, you can skip to building.
+First make sure you have C++17 compatible compiler. If you already have CMake and SDL2 installed, you can skip to building.
 
 ### CMake and SDL2
 Run following commands to install CMake and required development libraries on Debian based systems.
