@@ -43,14 +43,12 @@ public:
     for (auto checked : m_checked_number_tiles)
       checked = false;
   }
-
   bool is_not_flagged_open(size_type idx) const {
-    return !(m_board.m_tiles[idx].is_open() ||
-             m_board.m_tiles[idx].is_flagged());
+    return !(m_board.tiles_[idx].is_open() || m_board.tiles_[idx].is_flagged());
   }
 
   bool is_number_open(size_type idx) const {
-    return m_board.m_tiles[idx].is_open() && m_board.m_tiles[idx].is_number();
+    return m_board.tiles_[idx].is_open() && m_board.tiles_[idx].is_number();
   }
 
   auto flagged_neighbours_count(size_type idx) {
@@ -58,7 +56,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (m_board.m_tiles[i].is_flagged())
+      if (m_board.tiles_[i].is_flagged())
         ++count;
     return count;
   }
@@ -68,7 +66,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (!m_board.m_tiles[i].is_flagged())
+      if (!m_board.tiles_[i].is_flagged())
         ++count;
     return count;
   }
@@ -78,7 +76,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (m_board.m_tiles[i].is_open())
+      if (m_board.tiles_[i].is_open())
         ++count;
     return count;
   }
@@ -88,7 +86,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (!m_board.m_tiles[i].is_open())
+      if (!m_board.tiles_[i].is_open())
         ++count;
     return count;
   }
@@ -98,7 +96,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (!(m_board.m_tiles[i].is_flagged() || m_board.m_tiles[i].is_open()))
+      if (!(m_board.tiles_[i].is_flagged() || m_board.tiles_[i].is_open()))
         ++count;
     return count;
   }
@@ -148,7 +146,7 @@ public:
   bool open_by_flagged() {
     bool b_state_changed = false;
     // To make things prettier.
-    auto& tiles = m_board.m_tiles;
+    auto& tiles = m_board.tiles_;
     if (m_checked_number_tiles.size() != m_board.tile_count())
       m_checked_number_tiles.resize(m_board.tile_count(), false);
 
@@ -172,7 +170,7 @@ public:
   // flag those if they are equal.
   auto b_overlap_solve() {
     bool b_state_changed = false;
-    auto& tiles = m_board.m_tiles;
+    auto& tiles = m_board.tiles_;
     for (size_type idx = 0; idx < m_board.tile_count(); ++idx) {
       if (tiles[idx].is_open() && tiles[idx].is_number()) {
         // auto neighbrs = m_board.m_tile_neighbours_bnds(idx);
@@ -203,7 +201,7 @@ public:
   // @todo Comment steps in the algorithm.
   auto b_pattern_solve() {
     bool b_state_changed = false;
-    auto& tiles = m_board.m_tiles;
+    auto& tiles = m_board.tiles_;
 
     for (size_type i = 0; i < m_board.tile_count(); ++i) {
       if (tiles[i].is_open() && tiles[i].is_number()) {
@@ -251,7 +249,7 @@ public:
   // @return Whether something was changed.
   auto b_common_solve() {
     bool b_state_changed = false;
-    auto& tiles = m_board.m_tiles;
+    auto& tiles = m_board.tiles_;
 
     // Iterate over tiles.
     for (size_type i = 0; i < m_board.tile_count(); ++i) {
@@ -328,7 +326,7 @@ public:
      * combinations are tried and only 1 solution is found, set those flags.
      */
 
-    auto& tiles = m_board.m_tiles;
+    auto& tiles = m_board.tiles_;
 
     std::vector<size_type> not_opened;
     for (size_type i = 0; i < m_board.tile_count(); ++i)

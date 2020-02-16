@@ -104,7 +104,7 @@ public:
       return;
     }
     for (size_type i = 0; i < m_board->tile_count(); ++i) {
-      auto clip = texture_clip_tile(m_board->m_tiles[i]);
+      auto clip = texture_clip_tile(m_board->tiles_[i]);
       auto dst_rect = tile_dest(i);
 
       m_tile_texture->render(m_window->renderer(), &clip, &dst_rect);
