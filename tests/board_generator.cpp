@@ -72,19 +72,26 @@ void test() {
 void print_board(const Mineboardbase& mb) {
   for (Position_t::value_type y = 0; y < mb.height(); ++y) {
     for (Position_t::value_type x = 0; x < mb.width(); ++x) {
-      auto value = mb.at({x, y}).value();
-      switch (value) {
-      case BoardTile::TILE_EMPTY:
-        cout << '_';
-        break;
-      case BoardTile::TILE_MINE:
-        cout << '*';
-        break;
-      default:
-        cout << (int)value;
-        break;
+      auto tile = mb.at({x, y});
+      auto value = tile.value();
+
+      if (tile.is_open()) {
+        switch (value) {
+        case BoardTile::TILE_EMPTY:
+          cout << '_';
+          break;
+        case BoardTile::TILE_MINE:
+          cout << '*';
+          break;
+        default:
+          cout << (int)value;
+          break;
+        }
+      } else {
+        cout << 'X';
       }
     }
+
     cout << endl;
   }
 }
@@ -93,7 +100,18 @@ int main() {
   Mineboardbase mb(8, 8);
   random_device rd;
   mt19937_64 gen(rd());
-  mb.generate(1, {0, 0}, gen);
 
-  print_board(mb);
+  size_t minecount;
+  cout << "Minecount: ";
+  cin >> minecount;
+
+  mb.generate(minecount, {0, 0}, gen);
+
+  while (true) {
+    print_board(mb);
+    int x, y;
+    cin >> x >> y;
+
+    mb.open({x, y});
+  }
 }
