@@ -1,5 +1,5 @@
-#ifndef RAKE_MINEBOARDBASE_H
-#define RAKE_MINEBOARDBASE_H
+#ifndef MINEBOARDBASE_H
+#define MINEBOARDBASE_H
 
 #include <stack>
 #include <vector>
@@ -8,31 +8,41 @@
 
 namespace rake {
 
+enum BoardState {
+  WIN,
+  LOSE,
+  PLAYING,
+  READY,
+  UNINITIALIZED,
+  UNDEFINED,
+};
+
 struct Position_t {
   using value_type = int32_t;
   value_type x, y;
 
-  Position_t operator+(Position_t other) const {
+  constexpr Position_t operator+(Position_t other) const {
     return {x + other.x, y + other.y};
   }
-  Position_t operator-(Position_t other) const {
+  constexpr Position_t operator-(Position_t other) const {
     return {x - other.x, y - other.y};
   }
-
-  bool operator==(Position_t other) const {
+  constexpr bool operator==(Position_t other) const {
     return y == other.y && x == other.x;
   }
-  bool operator!=(Position_t other) const { return !(*this == other); }
-  bool operator<(Position_t other) const {
+  constexpr bool operator!=(Position_t other) const {
+    return !(*this == other);
+  }
+  constexpr bool operator<(Position_t other) const {
     return y == other.y ? x < other.x : y < other.y;
   }
-  bool operator>(Position_t other) const {
+  constexpr bool operator>(Position_t other) const {
     return y == other.y ? x > other.x : y > other.y;
   }
-  bool operator<=(Position_t other) const {
+  constexpr bool operator<=(Position_t other) const {
     return *this < other || *this == other;
   }
-  bool operator>=(Position_t other) const {
+  constexpr bool operator>=(Position_t other) const {
     return *this > other || *this == other;
   }
 };
@@ -42,29 +52,93 @@ public:
   using size_type = std::size_t;
   using diff_type = std::ptrdiff_t;
 
-  using position_type = Position_t;
+  using pos_type = Position_t;
   using tile_type = BoardTile;
 
   static constexpr uint32_t TILE_NEIGHBOUR_COUNT = 8;
 
-  Mineboardbase() : width_(0) {}
-  Mineboardbase(size_type width, size_type height) : width_(0) {
+  explicit Mineboardbase() : tiles_(), width_(0), state_(UNINITIALIZED) {}
+  Mineboardbase(const Mineboardbase& other) = default;
+  Mineboardbase(Mineboardbase&& other) = default;
+  Mineboardbase(size_type width, size_type height)
+      : tiles_(), width_(0), state_(UNINITIALIZED) {
     resize(width, height);
   }
   ~Mineboardbase() {}
-  const tile_type& operator[](position_type pos) const { return at(pos); }
-  tile_type& operator[](position_type pos) { return at(pos); }
 
+  /**
+   * @brief Provide read-only access to parameter %pos defined %BoardTile.
+   *
+   * @param pos - Position wherefrom BoardTile is indexed.
+   * @return constexpr const tile_type& - constant reference to BoardTile.
+   */
+  constexpr const tile_type& at(pos_type pos) const {
+    return tiles_[pos_to_idx(pos)];
+  }
+
+  /**
+   * @brief Returns read-only (constant) iterator to the beginning of the vector
+   * containing tiles.
+   *
+   * Forwards return value of std::vector::begin().
+   */
+  constexpr auto begin() const noexcept { return tiles_.begin(); }
+
+  /**
+   * @brief Returns read-only (constant) iterator to the end of the vector
+   * containing tiles.
+   *
+   * Forwards return value of std::vector::end().
+   */
+  constexpr auto end() const noexcept { return tiles_.end(); }
+
+  /**
+   * @brief Returns width of the board.
+   */
   constexpr size_type width() const noexcept { return width_; }
-  constexpr size_type height() const noexcept { return tiles_.size() / width_; }
-  constexpr size_type tile_count() const noexcept { return tiles_.size(); }
 
+  /**
+   * @brief Returns height of the board.
+   */
+  constexpr size_type height() const noexcept { return tiles_.size() / width_; }
+
+  /**
+   * @brief Returns the amount of tiles on board.
+   *
+   * Is equal to %width() * %height().
+   */
+  constexpr size_type size() const noexcept { return tiles_.size(); }
+
+  /**
+   * @brief Resize board.
+   *
+   * @param width - Sets width for the board.
+   * @param height - Sets height for the board.
+   */
   void resize(size_type width, size_type height) {
     tiles_.resize(width * height);
     width_ = width;
   }
 
-  void open(position_type pos, bool open_by_flagged = false) {
+  template<typename RNG> void generate(size_type mines, RNG&& rng) {
+    std::shuffle(tiles_.begin(), tiles_.end(), rng);
+  }
+
+  /**
+   * @brief Open tile at given position.
+   *
+   * @param pos - Selects the position for tile opening.
+   * @param open_by_flagged - Enables alternative opening style.
+   *
+   * Given that tile at %pos isn't yet
+   * opened, the tile, and on condition that the tile is empty, all of its
+   * neighbours will be opened. If the opened tile is empty and has empty
+   * neighbours, all connected neighbours will too be opened.
+   * If %open_by_flagged is set true or left defaulted, 'opening' from opened
+   * tile will open all neighbours if value of the tile is equal to the number
+   * of flagged neighbours.
+   */
+  void open(pos_type pos, bool open_by_flagged = true) {
     if (!at(pos).is_open()) {
       auto emptys = connected_emptys(pos);
 
@@ -88,37 +162,46 @@ public:
       }
     }
   }
-  void open_single(position_type pos) { at(pos).set_open(); }
 
-  std::vector<position_type> tile_neighbours(position_type pos) const {
-    std::vector<position_type> neighbours;
+  /**
+   * @brief Flag the tile at given position.
+   *
+   * @param pos - Position wherefrom tile is flagged.
+   */
+  constexpr void toggle_flag(pos_type pos) { at(pos).toggle_flag(); }
 
-    const std::array<position_type, TILE_NEIGHBOUR_COUNT> possible_neighbours{
-        pos + position_type{-1, -1}, pos + position_type{0, -1},
-        pos + position_type{1, -1},  pos + position_type{-1, 0},
-        pos + position_type{1, 0},   pos + position_type{-1, 1},
-        pos + position_type{0, 1},   pos + position_type{1, 1}};
+  /**
+   * @brief
+   *
+   * @param pos
+   * @return std::vector<pos_type>
+   */
+  std::vector<pos_type> tile_neighbours(pos_type pos) const {
+    std::vector<pos_type> neighbours;
+    neighbours.reserve(TILE_NEIGHBOUR_COUNT);
 
-    for (auto possible : possible_neighbours) {
-      if (is_inside_bounds(possible)) {
-        neighbours.push_back(possible);
-      }
-    }
+    const std::array<pos_type, TILE_NEIGHBOUR_COUNT> possible_neighbours{
+        pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
+        pos + pos_type{-1, 0},  pos + pos_type{1, 0},  pos + pos_type{-1, 1},
+        pos + pos_type{0, 1},   pos + pos_type{1, 1}};
+
+    std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
+                 std::back_inserter(neighbours), is_inside_bounds);
     return neighbours;
   }
 
-  std::vector<position_type> connected_emptys(position_type empty_pos) const {
-    std::vector<position_type> emptys;
+  std::vector<pos_type> connected_emptys(pos_type empty_pos) const {
+    std::vector<pos_type> emptys;
     // Check that %emptys_pos is valid and tile at %empty_pos is empty. Order
     // matters here!
-    if (!is_inside_bounds(empty_pos) || !(*this)[empty_pos].is_empty()) {
+    if (!is_inside_bounds(empty_pos) || !at(empty_pos).is_empty()) {
       return emptys;
     }
 
     // Stack keeping track of possible emptys.
-    std::stack<position_type> next_positions;
+    std::stack<pos_type> next_positions;
     // Vector keeping track of previously checked positions.
-    std::vector<bool> checked_positions(tile_count(), false);
+    std::vector<bool> checked_positions(size(), false);
 
     next_positions.emplace(empty_pos);
     while (!next_positions.empty()) {
@@ -143,21 +226,29 @@ public:
   }
 
 private:
-  const tile_type& at(position_type pos) const {
-    return tiles_[pos_to_idx(pos)];
-  }
-  tile_type& at(position_type pos) { return tiles_[pos_to_idx(pos)]; }
+  constexpr tile_type& at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
 
-  bool is_inside_bounds(position_type pos) const {
+  constexpr void open_single(pos_type pos) {
+    at(pos).set_open();
+    if (at(pos).is_mine())
+      set_state(LOSE);
+  }
+
+  void set_state(BoardState state) {
+    // Setting new state to current state via map.
+  }
+
+  constexpr bool is_inside_bounds(pos_type pos) const noexcept {
     return pos.x >= 0 && pos.y >= 0 && pos.x < width_ && pos.y < height();
   }
 
-  inline size_type pos_to_idx(position_type pos) const noexcept {
+  constexpr size_type pos_to_idx(pos_type pos) const noexcept {
     return pos.y * width_ + pos.x;
   }
 
   std::vector<tile_type> tiles_;
-  size_type width_;
+  pos_type::value_type width_;
+  BoardState state_;
 };
 
 } // namespace rake
