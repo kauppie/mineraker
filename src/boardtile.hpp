@@ -1,8 +1,6 @@
 #ifndef BOARDTILE_HPP
 #define BOARDTILE_HPP
 
-#include "mineraker.hpp"
-
 namespace rake {
 /**
  * Contains data of single tile placed on a board. Such information is: is the
