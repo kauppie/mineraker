@@ -40,20 +40,6 @@ void quit() {
   SDL_Quit();
 }
 
-// Thread-safe registering single function call.
-template<typename T> void call_once(T (*func)()) {
-  static std::mutex map_mutex;
-  std::lock_guard<std::mutex> lock(map_mutex);
-  static std::vector<decltype(func)> is_used;
-
-  for (const auto& fun : is_used)
-    if (fun == func)
-      return;
-
-  func();
-  is_used.push_back(func);
-}
-
 static constexpr int SCREEN_WIDTH = 640, SCREEN_HEIGHT = 480;
 // Tile input texture dimensions used for clipping individual textures.
 static constexpr int TEXTURE_WIDTH_COUNT = 4, TEXTURE_HEIGHT_COUNT = 3;
