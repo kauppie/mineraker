@@ -79,6 +79,9 @@ public:
 
   tile_type at(size_type idx) const { return tiles_[idx]; }
 
+  tile_type& at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
+  tile_type& at(size_type idx) { return tiles_[idx]; }
+
   /**
    * @brief Returns read-only (constant) iterator to the beginning of the vector
    * containing tiles.
@@ -123,6 +126,12 @@ public:
   void resize(size_type width, size_type height) {
     tiles_.resize(width * height);
     width_ = width;
+  }
+
+  void clear() {
+    auto s = tiles_.size();
+    tiles_.clear();
+    resize(width_, s / width_);
   }
 
   /**
@@ -205,9 +214,7 @@ public:
       auto emptys = connected_emptys(pos);
 
       for (auto empty_pos : emptys) {
-        for (auto empty_neighbour : tile_neighbours(empty_pos)) {
-          open_single(empty_neighbour);
-        }
+        open_single(empty_pos);
       }
       open_single(pos);
     } else if (open_by_flagged) {
@@ -241,11 +248,13 @@ public:
     std::vector<pos_type> neighbours;
     neighbours.reserve(MAX_NEIGHBOUR_COUNT);
 
+    // Positions around a given position.
     const std::array<pos_type, MAX_NEIGHBOUR_COUNT> possible_neighbours{
         pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
         pos + pos_type{-1, 0},  pos + pos_type{1, 0},  pos + pos_type{-1, 1},
         pos + pos_type{0, 1},   pos + pos_type{1, 1}};
 
+    // Extract valid positions.
     std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
                  std::back_inserter(neighbours),
                  [this](const pos_type& pos) { return is_inside_bounds(pos); });
@@ -292,18 +301,22 @@ public:
   }
 
 private:
-  tile_type& at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
-  tile_type& at(size_type idx) { return tiles_[idx]; }
-
   /**
-   * @brief Open singular tile. State checking is done.
+   * @brief Open single tile if not empty. If is, open it and neighbours.
    *
    * @param pos Position wherefrom tile is opened.
    */
   void open_single(pos_type pos) {
-    at(pos).set_open();
-    if (at(pos).is_mine())
+    auto& tile = at(pos);
+
+    tile.set_open();
+    if (tile.is_mine())
       set_state(LOSE);
+    else if (tile.is_empty()) {
+      auto neighbours = tile_neighbours(pos);
+      std::for_each(neighbours.begin(), neighbours.end(),
+                    [this](pos_type p) { at(p).set_open(); });
+    }
   }
 
   void set_state(BoardState state) {

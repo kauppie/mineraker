@@ -1,0 +1,57 @@
+This algorithm could be performed between any two tiles, but for performance
+reasons, only nearby tiles should be considered. 
+The algorithm can be used to find mines and possible locations for mines.
+
+
+flagging/mine search algorithm begin
+
+for tile in tiles:
+
+if tile is open and number:
+
+neighbours = not flagged tile's neighbours
+
+for neighbour in neighbours:
+
+tile_flag_value = tile.value - tile.flags_around
+neighbour_flag_value = neighbour.value - neighbour.flags_around
+
+if neighbour is open and number and tile_flag_value > neighbour_flag_value:
+
+diff = set_difference(tile.neighbours, neighbour.neighbours)
+
+diff_mines = tile_flag_value - neighbour_flag_value
+if diff.size == diff_mines:
+
+-> diff elements must be mines
+
+elif diff.size > diff_mines:
+
+-> mines are in some permutation in these tiles?
+
+algorithm end
+
+
+empty search algorithm begin
+
+for tile in tiles:
+
+if tile is open and number:
+
+neighbours = not flagged tile's neighbours
+
+for neighbour in neighbours:
+
+tile_flag_value = tile.value - tile.flags_around
+neighbour_flag_value = neighbour.value - neighbour.flags_around
+
+if 
+neighbour is open and number and 
+tile_flag_value == neighbour_flag_value and 
+tile.neighbours.size > neighbour.neighbours.size:
+
+diff = set_difference(tile.neighbours, neighbour.neighbours)
+
+-> diff elements must be empties
+
+algorithm end

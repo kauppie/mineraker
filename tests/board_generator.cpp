@@ -70,7 +70,16 @@ void test() {
 }
 
 void print_board(const Mineboardbase& mb) {
+  cout << "   ";
+  for (Position_t::value_type x = 0; x < mb.width(); ++x) {
+    if (x != 0)
+      cout << "  " << x;
+    else
+      cout << x;
+  }
+  cout << endl;
   for (Position_t::value_type y = 0; y < mb.height(); ++y) {
+    cout << y << ' ';
     for (Position_t::value_type x = 0; x < mb.width(); ++x) {
       auto tile = mb.at({x, y});
       auto value = tile.value();
@@ -78,17 +87,19 @@ void print_board(const Mineboardbase& mb) {
       if (tile.is_open()) {
         switch (value) {
         case BoardTile::TILE_EMPTY:
-          cout << '_';
+          cout << "[_]";
           break;
         case BoardTile::TILE_MINE:
-          cout << '*';
+          cout << "[*]";
           break;
         default:
-          cout << (int)value;
+          cout << '[' << (int)value << ']';
           break;
         }
+      } else if (tile.is_flagged()) {
+        cout << "(P)";
       } else {
-        cout << 'X';
+        cout << "( )";
       }
     }
 
@@ -96,7 +107,27 @@ void print_board(const Mineboardbase& mb) {
   }
 }
 
-int main() {
+void test2() {
+  Mineboardbase mb(64, 64);
+  random_device rd;
+  mt19937_64 gen(rd());
+
+  auto x = gen() % mb.width();
+  auto y = gen() % mb.height();
+
+  auto t1 = high_resolution_clock::now();
+  for (int i = 0; i < 10; ++i) {
+    mb.generate(1000, {x, y}, gen);
+    mb.clear();
+  }
+  auto t2 = high_resolution_clock::now();
+
+  mb.open({x, y});
+  cout << (int)mb.at({x, y}).value() << endl;
+  cout << duration<double, micro>(t2 - t1).count() << " us" << endl;
+}
+
+void game() {
   Mineboardbase mb(8, 8);
   random_device rd;
   mt19937_64 gen(rd());
@@ -112,6 +143,11 @@ int main() {
     int x, y;
     cin >> x >> y;
 
-    mb.open({x, y});
+    if (x < 0) {
+      mb.toggle_flag({-x, y});
+    } else
+      mb.open({x, y});
   }
 }
+
+int main() { test2(); }
