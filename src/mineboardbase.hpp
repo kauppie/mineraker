@@ -1,6 +1,9 @@
 #ifndef MINEBOARDBASE_H
 #define MINEBOARDBASE_H
 
+#include <algorithm>
+#include <array>
+#include <random>
 #include <stack>
 #include <vector>
 
@@ -55,7 +58,7 @@ public:
   using pos_type = Position_t;
   using tile_type = BoardTile;
 
-  static constexpr uint32_t TILE_NEIGHBOUR_COUNT = 8;
+  static constexpr size_type MAX_NEIGHBOUR_COUNT = 8;
 
   explicit Mineboardbase() : tiles_(), width_(0), state_(UNINITIALIZED) {}
   Mineboardbase(const Mineboardbase& other) = default;
@@ -69,12 +72,12 @@ public:
   /**
    * @brief Provide read-only access to parameter %pos defined %BoardTile.
    *
-   * @param pos - Position wherefrom BoardTile is indexed.
-   * @return constexpr const tile_type& - constant reference to BoardTile.
+   * @param pos Position wherefrom BoardTile is indexed.
+   * @return constexpr const tile_type& constant reference to BoardTile.
    */
-  constexpr const tile_type& at(pos_type pos) const {
-    return tiles_[pos_to_idx(pos)];
-  }
+  tile_type at(pos_type pos) const { return tiles_[pos_to_idx(pos)]; }
+
+  tile_type at(size_type idx) const { return tiles_[idx]; }
 
   /**
    * @brief Returns read-only (constant) iterator to the beginning of the vector
@@ -82,7 +85,7 @@ public:
    *
    * Forwards return value of std::vector::begin().
    */
-  constexpr auto begin() const noexcept { return tiles_.begin(); }
+  auto begin() const noexcept { return tiles_.begin(); }
 
   /**
    * @brief Returns read-only (constant) iterator to the end of the vector
@@ -90,48 +93,107 @@ public:
    *
    * Forwards return value of std::vector::end().
    */
-  constexpr auto end() const noexcept { return tiles_.end(); }
+  auto end() const noexcept { return tiles_.end(); }
 
   /**
    * @brief Returns width of the board.
    */
-  constexpr size_type width() const noexcept { return width_; }
+  constexpr pos_type::value_type width() const noexcept { return width_; }
 
   /**
    * @brief Returns height of the board.
    */
-  constexpr size_type height() const noexcept { return tiles_.size() / width_; }
+  pos_type::value_type height() const noexcept {
+    return tiles_.size() / width_;
+  }
 
   /**
    * @brief Returns the amount of tiles on board.
    *
    * Is equal to %width() * %height().
    */
-  constexpr size_type size() const noexcept { return tiles_.size(); }
+  size_type size() const noexcept { return tiles_.size(); }
 
   /**
    * @brief Resize board.
    *
-   * @param width - Sets width for the board.
-   * @param height - Sets height for the board.
+   * @param width Sets width for the board.
+   * @param height Sets height for the board.
    */
   void resize(size_type width, size_type height) {
     tiles_.resize(width * height);
     width_ = width;
   }
 
-  template<typename RNG> void generate(size_type mines, RNG&& rng) {
-    std::shuffle(tiles_.begin(), tiles_.end(), rng);
+  /**
+   * @brief Generates new board with given amount of mines.
+   *
+   * @tparam RNG Random Number Generator type.
+   * @param mines The amount of mines to be spread.
+   * @param start_pos Starting position for the game. This position will be
+   * left empty.
+   * @param rng Random Number Generator. Used to randomize mine positions.
+   * @param allow_mines_as_neighbours When set to true, all positions except
+   * %start_pos will treated as possible mine positions. If false, neighbours
+   * won't be filled with mines.
+   */
+  template<typename RNG>
+  void generate(size_type mines, pos_type start_pos, RNG&& rng,
+                bool allow_mines_as_neighbours = false) {
+    // Calculate the amount of indexes that won't be considered possible mine
+    // indexes.
+    size_type left_untouched =
+        allow_mines_as_neighbours ? 1 : neighbour_count(start_pos) + 1;
+    // Calculate the amount of mines to spread, capped at total empty spots for
+    // mines.
+    size_type mines_to_spread = std::min(mines, size() - left_untouched);
+
+    // Distribution for setting mines. Last indexes will be left empty to make
+    // generation more efficient.
+    std::uniform_int_distribution<size_type> dis(0,
+                                                 size() - left_untouched - 1);
+
+    // Spread mines on the board.
+    for (size_type mines_spread = 0; mines_spread < mines_to_spread;) {
+      // Generate new mine index.
+      auto idx = dis(rng);
+
+      if (!at(idx).is_mine()) {
+        at(idx).set_mine();
+        ++mines_spread;
+      }
+    }
+
+    // Lambda for mapping "wrongly" positioned mines to the end of the vector.
+    auto move_if_mine = [this](pos_type pos, size_type empty_idx) {
+      tiles_[empty_idx].value(at(pos).value());
+      at(pos).value(BoardTile::TILE_EMPTY);
+    };
+
+    // Map last empty coordinates to actual left empty coordinates.
+    if (allow_mines_as_neighbours) {
+      move_if_mine(start_pos, size() - 1);
+    } else {
+      auto empty_area = tile_neighbours(start_pos);
+      empty_area.emplace_back(start_pos);
+
+      for (size_type i = 0; i < empty_area.size(); ++i) {
+        move_if_mine(empty_area[i], i + size() - left_untouched);
+      }
+    }
+
+    // Set numbered tiles based on mine positions.
+    set_numbered_tiles();
   }
 
   /**
    * @brief Open tile at given position.
    *
-   * @param pos - Selects the position for tile opening.
-   * @param open_by_flagged - Enables alternative opening style.
+   * @param pos Selects the position for tile opening.
+   * @param open_by_flagged Enables alternative opening style.
    *
    * Given that tile at %pos isn't yet
-   * opened, the tile, and on condition that the tile is empty, all of its
+   * opened, on condition that the tile is empty, all of its
    * neighbours will be opened. If the opened tile is empty and has empty
    * neighbours, all connected neighbours will too be opened.
    * If %open_by_flagged is set true or left defaulted, 'opening' from opened
@@ -142,23 +204,22 @@ public:
     if (!at(pos).is_open()) {
       auto emptys = connected_emptys(pos);
 
-      if (!emptys.empty()) {
-        for (auto empty_pos : emptys) {
-          for (auto empty_neighbour : tile_neighbours(empty_pos)) {
-            open_single(empty_neighbour);
-          }
+      for (auto empty_pos : emptys) {
+        for (auto empty_neighbour : tile_neighbours(empty_pos)) {
+          open_single(empty_neighbour);
         }
       }
       open_single(pos);
     } else if (open_by_flagged) {
       auto neighbours = tile_neighbours(pos);
 
-      auto flagged_neighbours = std::count_if(
-          neighbours.begin(), neighbours.end(), tile_type::is_flagged);
+      auto flagged_neighbours =
+          std::count_if(neighbours.begin(), neighbours.end(),
+                        [this](pos_type pos) { return at(pos).is_flagged(); });
 
       if (flagged_neighbours == at(pos).value()) {
         std::for_each(neighbours.begin(), neighbours.end(),
-                      tile_type::set_open);
+                      [this](pos_type pos) { at(pos).set_open(); });
       }
     }
   }
@@ -166,9 +227,9 @@ public:
   /**
    * @brief Flag the tile at given position.
    *
-   * @param pos - Position wherefrom tile is flagged.
+   * @param pos Position wherefrom tile is flagged.
    */
-  constexpr void toggle_flag(pos_type pos) { at(pos).toggle_flag(); }
+  void toggle_flag(pos_type pos) { at(pos).toggle_flag(); }
 
   /**
    * @brief
@@ -178,15 +239,16 @@ public:
    */
   std::vector<pos_type> tile_neighbours(pos_type pos) const {
     std::vector<pos_type> neighbours;
-    neighbours.reserve(TILE_NEIGHBOUR_COUNT);
+    neighbours.reserve(MAX_NEIGHBOUR_COUNT);
 
-    const std::array<pos_type, TILE_NEIGHBOUR_COUNT> possible_neighbours{
+    const std::array<pos_type, MAX_NEIGHBOUR_COUNT> possible_neighbours{
         pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
         pos + pos_type{-1, 0},  pos + pos_type{1, 0},  pos + pos_type{-1, 1},
         pos + pos_type{0, 1},   pos + pos_type{1, 1}};
 
     std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
-                 std::back_inserter(neighbours), is_inside_bounds);
+                 std::back_inserter(neighbours),
+                 [this](const pos_type& pos) { return is_inside_bounds(pos); });
     return neighbours;
   }
 
@@ -225,10 +287,20 @@ public:
     return emptys;
   }
 
-private:
-  constexpr tile_type& at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
+  constexpr bool is_inside_bounds(pos_type pos) const noexcept {
+    return pos.x >= 0 && pos.y >= 0 && pos.x < width_ && pos.y < height();
+  }
 
-  constexpr void open_single(pos_type pos) {
+private:
+  tile_type& at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
+  tile_type& at(size_type idx) { return tiles_[idx]; }
+
+  /**
+   * @brief Open singular tile. State checking is done.
+   *
+   * @param pos Position wherefrom tile is opened.
+   */
+  void open_single(pos_type pos) {
     at(pos).set_open();
     if (at(pos).is_mine())
       set_state(LOSE);
@@ -238,12 +310,48 @@ private:
     // Setting new state to current state via map.
   }
 
-  constexpr bool is_inside_bounds(pos_type pos) const noexcept {
-    return pos.x >= 0 && pos.y >= 0 && pos.x < width_ && pos.y < height();
+  /**
+   * @brief Set numbers for tiles based on mines' positions.
+   *
+   * Each mine is gone through its neighbouring tiles are promoted. When loop is
+   * complete all tiles have correct numbers assigned to them.
+   */
+  void set_numbered_tiles() {
+    for (size_type idx = 0; idx < size(); ++idx) {
+      if (tiles_[idx].is_mine()) {
+        auto neighbours = tile_neighbours(idx_to_pos(idx));
+        std::for_each(neighbours.begin(), neighbours.end(),
+                      [this](pos_type p) { at(p).promote(); });
+      }
+    }
+  }
+
+  constexpr size_type neighbour_count(pos_type pos) const noexcept {
+    const bool vertical_edge = pos.x == 0 || pos.x == width_ - 1;
+    const bool horizontal_edge = pos.y == 0 || pos.y == height() - 1;
+    // If is against both vertically and horizontally going walls.
+    if (vertical_edge && horizontal_edge)
+      return 3;
+    // If is against either vertically or horizontally going wall.
+    if (vertical_edge || horizontal_edge)
+      return 5;
+    // If isn't against any walls.
+    return MAX_NEIGHBOUR_COUNT;
   }
 
   constexpr size_type pos_to_idx(pos_type pos) const noexcept {
     return pos.y * width_ + pos.x;
+  }
+
+  /**
+   * @brief Converts index to a position.
+   *
+   * @param idx Index to be converted to position.
+   * @return constexpr pos_type Position to which index maps to.
+   */
+  constexpr pos_type idx_to_pos(size_type idx) const noexcept {
+    return {static_cast<pos_type::value_type>(idx % width_),
+            static_cast<pos_type::value_type>(idx / width_)};
   }
 
   std::vector<tile_type> tiles_;
