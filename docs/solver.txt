@@ -48,7 +48,8 @@ neighbour_flag_value = neighbour.value - neighbour.flags_around
 if 
 neighbour is open and number and 
 tile_flag_value == neighbour_flag_value and 
-tile.neighbours.size > neighbour.neighbours.size:
+tile.neighbours.size > neighbour.neighbours.size and
+tile.neighbours includes neighbours.neighbours:
 
 diff = set_difference(tile.neighbours, neighbour.neighbours)
 
