@@ -1,5 +1,5 @@
-#ifndef MINEBOARDBASE_H
-#define MINEBOARDBASE_H
+#ifndef MINEBOARDBASE_HPP
+#define MINEBOARDBASE_HPP
 
 #include <algorithm>
 #include <array>
@@ -259,6 +259,10 @@ public:
                  std::back_inserter(neighbours),
                  [this](const pos_type& pos) { return is_inside_bounds(pos); });
     return neighbours;
+  }
+
+  std::vector<pos_type> tile_neighbours(size_type idx) const {
+    return tile_neighbours(idx_to_pos(idx));
   }
 
   std::vector<pos_type> connected_emptys(pos_type empty_pos) const {
