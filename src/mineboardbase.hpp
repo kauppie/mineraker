@@ -245,10 +245,16 @@ public:
    * @return std::vector<pos_type>
    */
   std::vector<pos_type> tile_neighbours(pos_type pos) const {
+    tile_neighbours(pos,
+                    [this](const pos_type& p) { return is_inside_bounds(p); });
+  }
+
+  template<typename Pred>
+  std::vector<pos_type> tile_neighbours(pos_type pos, Pred pred) const {
     std::vector<pos_type> neighbours;
     neighbours.reserve(MAX_NEIGHBOUR_COUNT);
 
-    // Positions around a given position.
+    // Positions around a given position in sorted order.
     const std::array<pos_type, MAX_NEIGHBOUR_COUNT> possible_neighbours{
         pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
         pos + pos_type{-1, 0},  pos + pos_type{1, 0},  pos + pos_type{-1, 1},
@@ -256,13 +262,16 @@ public:
 
     // Extract valid positions.
     std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
-                 std::back_inserter(neighbours),
-                 [this](const pos_type& pos) { return is_inside_bounds(pos); });
+                 std::back_inserter(neighbours), &pred);
     return neighbours;
   }
 
   std::vector<pos_type> tile_neighbours(size_type idx) const {
     return tile_neighbours(idx_to_pos(idx));
+  }
+  template<typename Pred>
+  std::vector<pos_type> tile_neighbours(size_type idx, Pred pred) const {
+    return tile_neighbours(idx_to_pos(idx), &pred);
   }
 
   std::vector<pos_type> connected_emptys(pos_type empty_pos) const {
@@ -338,7 +347,7 @@ private:
       if (tiles_[idx].is_mine()) {
         auto neighbours = tile_neighbours(idx_to_pos(idx));
         std::for_each(neighbours.begin(), neighbours.end(),
-                      [this](pos_type p) { at(p).promote(); });
+                      [this](const pos_type& p) { at(p).promote(); });
       }
     }
   }
@@ -374,7 +383,7 @@ private:
   std::vector<tile_type> tiles_;
   pos_type::value_type width_;
   BoardState state_;
-};
+}; // namespace rake
 
 } // namespace rake
 
