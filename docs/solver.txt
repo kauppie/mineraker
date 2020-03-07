@@ -56,3 +56,12 @@ diff = set_difference(tile.neighbours, neighbour.neighbours)
 -> diff elements must be empties
 
 algorithm end
+
+TODO: IMPLEMENT algorithm
+
+tile indexes and mine count in some permutation in them:
+
+if 
+tile.neighbours includes said [tile indexes] and
+[mine count] == tile.value:
+-> open difference(tile.neighbours, [tile indexes])
