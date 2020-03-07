@@ -65,3 +65,9 @@ if
 tile.neighbours includes said [tile indexes] and
 [mine count] == tile.value:
 -> open difference(tile.neighbours, [tile indexes])
+
+
+-------
+
+not opened and not flagged neighbours
+tile's actual value - amount of flagged neighbours

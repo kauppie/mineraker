@@ -3,6 +3,7 @@
 #include <random>
 
 #include "../src/mineboardbase.hpp"
+#include "../src/solver_iterator.hpp"
 
 using namespace std;
 using namespace rake;
@@ -108,7 +109,7 @@ void print_board(const Mineboardbase& mb) {
 }
 
 void test2() {
-  Mineboardbase mb(64, 64);
+  Mineboardbase mb(8, 8);
   random_device rd;
   mt19937_64 gen(rd());
 
@@ -127,6 +128,91 @@ void test2() {
   cout << duration<double, micro>(t2 - t1).count() << " us" << endl;
 }
 
+void test3() {
+
+  Mineboardbase mb(32, 16);
+
+  random_device rd;
+  mt19937_64 gen(rd());
+
+  auto x = gen() % mb.width();
+  auto y = gen() % mb.height();
+
+  mb.generate(99, {x, y}, gen);
+  mb.open({x, y});
+
+  {
+    auto ptr = make_shared<Mineboardbase>(mb);
+
+    cout << ptr->size() << endl;
+
+    SolverIterator si(ptr);
+    print_board(*ptr);
+    si.next_step();
+
+    while (si.open_and_flag()) {
+      print_board(*ptr);
+      si.next_step();
+      string s;
+      getline(cin, s);
+    }
+  }
+}
+
+void test4() {
+  std::string set_mine = {"---1*23*2-2***334*4*3*2**323**"
+                          "11-12*4*3-3*64****4*42334**5**"
+                          "*2-1223*312*3*35*6422*11*33***"
+                          "*2-1*113*4433113***2111112235*"
+                          "22-23324****2124***3112323*22*"
+                          "*1-1**3**5432*4***5*11***5*422"
+                          "12246*5323*223**6*522124*5*6*2"
+                          "-1*****435*31*434*6*311124***3"
+                          "23335******213*44***3*211*345*"
+                          "**1-3*75432224***66433*21111**"
+                          "221-2***3333**46****35*412246*"
+                          "11--25*5****54*5*643***3*4****"
+                          "*2-12**4234*4*5***113*444***6*"
+                          "*433*4*2-1224**33221334**4424*"
+                          "4***222322*12*31--1*2**44*2-2*"
+                          "***31-1**211111---1123*22*2-11"};
+  Mineboardbase mb(30, 16);
+
+  for (size_t i = 0; i < set_mine.size(); ++i) {
+    char c = set_mine[i];
+
+    if (c == '*') {
+      mb.at(i).set_mine();
+    }
+  }
+  mb.set_numbered_tiles();
+
+  mb.open({0, 0});
+  {
+    auto ptr = make_shared<Mineboardbase>(mb);
+
+    cout << ptr->size() << endl;
+
+    SolverIterator si(ptr);
+    print_board(*ptr);
+    si.next_step();
+    print_board(*ptr);
+
+    while (si.open_and_flag()) {
+
+      auto t1 = high_resolution_clock::now();
+      si.next_step();
+      auto t2 = high_resolution_clock::now();
+
+      print_board(*ptr);
+      cout << duration<double, micro>(t2 - t1).count() << " us" << endl;
+
+      string s;
+      getline(cin, s);
+    }
+  }
+}
+
 void game() {
   Mineboardbase mb(8, 8);
   random_device rd;
@@ -143,11 +229,8 @@ void game() {
     int x, y;
     cin >> x >> y;
 
-    if (x < 0) {
-      mb.toggle_flag({-x, y});
-    } else
-      mb.open({x, y});
+    mb.open({x, y});
   }
 }
 
-int main() { test2(); }
+int main() { test4(); }

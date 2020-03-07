@@ -174,20 +174,20 @@ public:
     }
 
     // Lambda for mapping "wrongly" positioned mines to the end of the vector.
-    auto move_if_mine = [this](pos_type pos, size_type empty_idx) {
+    auto swap_tile = [this](pos_type pos, size_type empty_idx) {
       tiles_[empty_idx].value(at(pos).value());
-      at(pos).value(BoardTile::TILE_EMPTY);
+      at(pos).value(tile_type::TILE_EMPTY);
     };
 
     // Map last empty coordinates to actual left empty coordinates.
     if (allow_mines_as_neighbours) {
-      move_if_mine(start_pos, size() - 1);
+      swap_tile(start_pos, size() - 1);
     } else {
       auto empty_area = tile_neighbours(start_pos);
       empty_area.emplace_back(start_pos);
 
       for (size_type i = 0; i < empty_area.size(); ++i) {
-        move_if_mine(empty_area[i], i + size() - left_untouched);
+        swap_tile(empty_area[i], i + size() - left_untouched);
       }
     }
 
@@ -226,17 +226,10 @@ public:
 
       if (flagged_neighbours == at(pos).value()) {
         std::for_each(neighbours.begin(), neighbours.end(),
-                      [this](pos_type pos) { at(pos).set_open(); });
+                      [this](pos_type p) { open(p, false); });
       }
     }
   }
-
-  /**
-   * @brief Flag the tile at given position.
-   *
-   * @param pos Position wherefrom tile is flagged.
-   */
-  void toggle_flag(pos_type pos) { at(pos).toggle_flag(); }
 
   /**
    * @brief
@@ -245,8 +238,8 @@ public:
    * @return std::vector<pos_type>
    */
   std::vector<pos_type> tile_neighbours(pos_type pos) const {
-    tile_neighbours(pos,
-                    [this](const pos_type& p) { return is_inside_bounds(p); });
+    return tile_neighbours(
+        pos, [this](const pos_type& p) { return is_inside_bounds(p); });
   }
 
   template<typename Pred>
@@ -262,7 +255,7 @@ public:
 
     // Extract valid positions.
     std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
-                 std::back_inserter(neighbours), &pred);
+                 std::back_inserter(neighbours), pred);
     return neighbours;
   }
 
@@ -271,7 +264,7 @@ public:
   }
   template<typename Pred>
   std::vector<pos_type> tile_neighbours(size_type idx, Pred pred) const {
-    return tile_neighbours(idx_to_pos(idx), &pred);
+    return tile_neighbours(idx_to_pos(idx), pred);
   }
 
   std::vector<pos_type> connected_emptys(pos_type empty_pos) const {
@@ -313,7 +306,22 @@ public:
     return pos.x >= 0 && pos.y >= 0 && pos.x < width_ && pos.y < height();
   }
 
-private:
+  constexpr size_type pos_to_idx(pos_type pos) const noexcept {
+    return pos.y * width_ + pos.x;
+  }
+
+  /**
+   * @brief Converts index to a position.
+   *
+   * @param idx Index to be converted to position.
+   * @return constexpr pos_type Position to which index maps to.
+   */
+  constexpr pos_type idx_to_pos(size_type idx) const noexcept {
+    return {static_cast<pos_type::value_type>(idx % width_),
+            static_cast<pos_type::value_type>(idx / width_)};
+  }
+
+  // private:
   /**
    * @brief Open single tile if not empty. If is, open it and neighbours.
    *
@@ -363,21 +371,6 @@ private:
       return 5;
     // If isn't against any walls.
     return MAX_NEIGHBOUR_COUNT;
-  }
-
-  constexpr size_type pos_to_idx(pos_type pos) const noexcept {
-    return pos.y * width_ + pos.x;
-  }
-
-  /**
-   * @brief Converts index to a position.
-   *
-   * @param idx Index to be converted to position.
-   * @return constexpr pos_type Position to which index maps to.
-   */
-  constexpr pos_type idx_to_pos(size_type idx) const noexcept {
-    return {static_cast<pos_type::value_type>(idx % width_),
-            static_cast<pos_type::value_type>(idx / width_)};
   }
 
   std::vector<tile_type> tiles_;
