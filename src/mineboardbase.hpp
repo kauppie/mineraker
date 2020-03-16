@@ -34,7 +34,7 @@ struct Position_t {
     return y == other.y && x == other.x;
   }
   constexpr bool operator!=(Position_t other) const {
-    return !(*this == other);
+    return y != other.y || x != other.x;
   }
   constexpr bool operator<(Position_t other) const {
     return y == other.y ? x < other.x : y < other.y;
@@ -60,7 +60,8 @@ public:
 
   static constexpr size_type MAX_NEIGHBOUR_COUNT = 8;
 
-  explicit Mineboardbase() : tiles_(), width_(0), state_(UNINITIALIZED) {}
+  explicit Mineboardbase()
+      : tiles_(), neighbours_pos_(), width_(0), state_(UNINITIALIZED) {}
   Mineboardbase(const Mineboardbase& other) = default;
   Mineboardbase(Mineboardbase&& other) = default;
   Mineboardbase(size_type width, size_type height)
@@ -124,8 +125,13 @@ public:
    * @param height Sets height for the board.
    */
   void resize(size_type width, size_type height) {
-    tiles_.resize(width * height);
+    auto new_size = width * height;
+
+    tiles_.resize(new_size);
+    neighbours_pos_.resize(new_size);
     width_ = width;
+
+    generate_neighbours();
   }
 
   void clear() {
@@ -238,33 +244,25 @@ public:
    * @return std::vector<pos_type>
    */
   std::vector<pos_type> tile_neighbours(pos_type pos) const {
-    return tile_neighbours(
-        pos, [this](const pos_type& p) { return is_inside_bounds(p); });
+    return std::move(tile_neighbours(pos_to_idx(pos)));
   }
 
   template<typename Pred>
   std::vector<pos_type> tile_neighbours(pos_type pos, Pred pred) const {
-    std::vector<pos_type> neighbours;
-    neighbours.reserve(MAX_NEIGHBOUR_COUNT);
-
-    // Positions around a given position in sorted order.
-    const std::array<pos_type, MAX_NEIGHBOUR_COUNT> possible_neighbours{
-        pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
-        pos + pos_type{-1, 0},  pos + pos_type{1, 0},  pos + pos_type{-1, 1},
-        pos + pos_type{0, 1},   pos + pos_type{1, 1}};
-
-    // Extract valid positions.
-    std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
-                 std::back_inserter(neighbours), pred);
-    return neighbours;
+    return std::move(tile_neighbours(pos_to_idx(pos), pred));
   }
 
   std::vector<pos_type> tile_neighbours(size_type idx) const {
-    return tile_neighbours(idx_to_pos(idx));
+    return neighbours_pos_[idx];
   }
+
   template<typename Pred>
   std::vector<pos_type> tile_neighbours(size_type idx, Pred pred) const {
-    return tile_neighbours(idx_to_pos(idx), pred);
+    std::vector<pos_type> pred_pos;
+    auto neighbours = neighbours_pos_[idx];
+    std::copy_if(neighbours.begin(), neighbours.end(),
+                 std::back_inserter(pred_pos), pred);
+    return pred_pos;
   }
 
   std::vector<pos_type> connected_emptys(pos_type empty_pos) const {
@@ -351,13 +349,42 @@ public:
    * complete all tiles have correct numbers assigned to them.
    */
   void set_numbered_tiles() {
-    for (size_type idx = 0; idx < size(); ++idx) {
-      if (tiles_[idx].is_mine()) {
+    for (auto tile_iter = tiles_.begin(); tile_iter != tiles_.end();
+         ++tile_iter) {
+      size_type idx = std::distance(tiles_.begin(), tile_iter);
+
+      if (at(idx).is_mine()) {
         auto neighbours = tile_neighbours(idx_to_pos(idx));
         std::for_each(neighbours.begin(), neighbours.end(),
                       [this](const pos_type& p) { at(p).promote(); });
       }
     }
+  }
+
+  void generate_neighbours() {
+    for (auto tile_iter = tiles_.begin(); tile_iter != tiles_.end();
+         ++tile_iter) {
+      size_type idx = std::distance(tiles_.begin(), tile_iter);
+
+      neighbours_pos_[idx] = tile_neighbours_gen(idx_to_pos(idx));
+    }
+  }
+
+  std::vector<pos_type> tile_neighbours_gen(pos_type pos) const {
+    std::vector<pos_type> neighbours;
+    neighbours.reserve(neighbour_count(pos));
+
+    // Positions around a given position in sorted order.
+    const std::array<pos_type, MAX_NEIGHBOUR_COUNT> possible_neighbours{
+        pos + pos_type{-1, -1}, pos + pos_type{0, -1}, pos + pos_type{1, -1},
+        pos + pos_type{-1, 0},  pos + pos_type{1, 0},  pos + pos_type{-1, 1},
+        pos + pos_type{0, 1},   pos + pos_type{1, 1}};
+
+    // Extract valid positions.
+    std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
+                 std::back_inserter(neighbours),
+                 [this](const pos_type& p) { return is_inside_bounds(p); });
+    return neighbours;
   }
 
   constexpr size_type neighbour_count(pos_type pos) const noexcept {
@@ -374,6 +401,8 @@ public:
   }
 
   std::vector<tile_type> tiles_;
+  std::vector<std::vector<pos_type>> neighbours_pos_;
+
   pos_type::value_type width_;
   BoardState state_;
 }; // namespace rake
