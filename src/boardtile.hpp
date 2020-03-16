@@ -7,9 +7,9 @@ namespace rake {
  * tile open, is flag set on it and it's holding value which is either empty
  * represented by 0, number between 1-8 or mine represented by 9.
  */
-class BoardTile {
+class Tile {
 public:
-  using this_type = BoardTile;
+  using this_type = Tile;
   using value_type = unsigned char;
   using constant_type = const value_type;
 
@@ -27,27 +27,27 @@ public:
                        TILE_8 = 8, TILE_MINE = 9;
 
   // @brief Default constructor that sets tile to cleared one.
-  constexpr BoardTile()
+  constexpr Tile()
       : m_tile_value(TILE_EMPTY), m_b_flagged(false), m_b_open(false) {}
   // @brief Constructor that takes tile value as parameter. Tile is set to
   // resetted one.
-  constexpr BoardTile(value_type m_tile_value)
+  constexpr Tile(value_type m_tile_value)
       : m_tile_value(m_tile_value), m_b_flagged(false), m_b_open(false) {}
   // @brief Constructor that takes all tile defining values as parameters and
   // constructs variables from them.
-  constexpr BoardTile(value_type m_tile_value, bool is_flagged, bool is_open)
+  constexpr Tile(value_type m_tile_value, bool is_flagged, bool is_open)
       : m_tile_value(m_tile_value), m_b_flagged(is_flagged), m_b_open(is_open) {
   }
   // @brief Copy constructor.
-  constexpr BoardTile(const this_type& other)
+  constexpr Tile(const this_type& other)
       : m_tile_value(other.m_tile_value), m_b_flagged(other.m_b_flagged),
         m_b_open(other.m_b_open) {}
   // Can use rvalue references on bit fields.
-  constexpr BoardTile(this_type&& other) = delete;
+  constexpr Tile(this_type&& other) = delete;
   // @brief Move constructor. Is deleted for usage of bit field member
   // variables.
   // @brief Deconstructor.
-  ~BoardTile() noexcept {}
+  ~Tile() noexcept {}
 
   constexpr this_type& operator=(const this_type& other) {
     m_tile_value = other.m_tile_value;

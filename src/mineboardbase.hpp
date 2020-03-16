@@ -56,7 +56,7 @@ public:
   using diff_type = std::ptrdiff_t;
 
   using pos_type = Position_t;
-  using tile_type = BoardTile;
+  using tile_type = Tile;
 
   static constexpr size_type MAX_NEIGHBOUR_COUNT = 8;
 

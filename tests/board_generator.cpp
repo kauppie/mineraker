@@ -87,10 +87,10 @@ void print_board(const Mineboardbase& mb) {
 
       if (tile.is_open()) {
         switch (value) {
-        case BoardTile::TILE_EMPTY:
+        case Tile::TILE_EMPTY:
           cout << "[_]";
           break;
-        case BoardTile::TILE_MINE:
+        case Tile::TILE_MINE:
           cout << "[*]";
           break;
         default:

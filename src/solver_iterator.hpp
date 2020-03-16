@@ -47,9 +47,10 @@ public:
         } else {
           for (auto neigh_pos_it = all_neighbours.begin();
                neigh_pos_it != all_neighbours.end(); ++neigh_pos_it) {
+            // Alias for neighbouring %Tile object.
+            auto& neigbour = board_ptr->at(*neigh_pos_it);
 
-            if (board_ptr->at(*neigh_pos_it).is_open() &&
-                board_ptr->at(*neigh_pos_it).is_number()) {
+            if (neigbour.is_open() && neigbour.is_number()) {
 
               auto tile_flag_value =
                   tile_it->value() -
@@ -60,7 +61,7 @@ public:
               auto all_neigh_neighbours =
                   board_ptr->tile_neighbours(*neigh_pos_it);
               auto neighbour_flag_value =
-                  board_ptr->at(*neigh_pos_it).value() -
+                  neigbour.value() -
                   std::count_if(all_neigh_neighbours.begin(),
                                 all_neigh_neighbours.end(),
                                 [this](const pos_type& p) {
@@ -69,10 +70,13 @@ public:
 
               if (tile_flag_value > neighbour_flag_value) {
                 std::vector<pos_type> diff;
+                // Not flagged nor opened neighbours.
                 auto not_fl_op_neighbours = not_flagged_opened_neighbours(
                     std::distance(board_ptr->begin(), tile_it));
+                // Not flagged nor opened neighbours of neighbour.
                 auto neigh_not_fl_op_neighbours =
                     not_flagged_opened_neighbours(*neigh_pos_it);
+
                 std::set_difference(
                     not_fl_op_neighbours.begin(), not_fl_op_neighbours.end(),
                     neigh_not_fl_op_neighbours.begin(),
@@ -94,7 +98,6 @@ public:
   }
 
   void next_open_step() {
-
     for (auto tile_it = board_ptr->begin(); tile_it != board_ptr->end();
          ++tile_it) {
       if (tile_it->is_open() && tile_it->is_number()) {
@@ -186,8 +189,7 @@ private:
 
   std::vector<pos_type> not_flagged_opened_neighbours(pos_type pos) const {
     return board_ptr->tile_neighbours(pos, [this](const pos_type& p) {
-      return board_ptr->is_inside_bounds(p) && !board_ptr->at(p).is_flagged() &&
-             !board_ptr->at(p).is_open();
+      return !board_ptr->at(p).is_flagged() && !board_ptr->at(p).is_open();
     });
   }
 
@@ -200,7 +202,7 @@ private:
   std::vector<Minearea> mine_areas;
 
   std::shared_ptr<Mineboardbase> board_ptr;
-}; // namespace rake
+};
 
 } // namespace rake
 
