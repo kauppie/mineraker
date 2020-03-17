@@ -1,6 +1,8 @@
 #ifndef BOARDTILE_HPP
 #define BOARDTILE_HPP
 
+#include <cstdint>
+
 namespace rake {
 /**
  * Contains data of single tile placed on a board. Such information is: is the
@@ -10,8 +12,7 @@ namespace rake {
 class Tile {
 public:
   using this_type = Tile;
-  using value_type = unsigned char;
-  using constant_type = const value_type;
+  using value_type = uint8_t;
 
 private:
   // Defines tile's board value. Ranges from 0 to 9. Number 9 represents a mine.
@@ -22,9 +23,18 @@ private:
   bool m_b_open : 1;
 
 public:
-  static constant_type TILE_EMPTY = 0, TILE_1 = 1, TILE_2 = 2, TILE_3 = 3,
-                       TILE_4 = 4, TILE_5 = 5, TILE_6 = 6, TILE_7 = 7,
-                       TILE_8 = 8, TILE_MINE = 9;
+  enum {
+    TILE_EMPTY = 0,
+    TILE_1 = 1,
+    TILE_2 = 2,
+    TILE_3 = 3,
+    TILE_4 = 4,
+    TILE_5 = 5,
+    TILE_6 = 6,
+    TILE_7 = 7,
+    TILE_8 = 8,
+    TILE_MINE = 9
+  };
 
   // @brief Default constructor that sets tile to cleared one.
   constexpr Tile()

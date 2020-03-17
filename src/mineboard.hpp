@@ -12,8 +12,8 @@
 #include <utility>
 #include <vector>
 
-#include "boardtile.hpp"
 #include "mineraker.hpp"
+#include "tile.hpp"
 
 namespace rake {
 
@@ -30,7 +30,7 @@ namespace rake {
  */
 class MineBoard {
 public:
-  using tile_type = BoardTile;
+  using tile_type = Tile;
   using this_type = MineBoard;
   using size_type = std::size_t;
   using diff_type = std::ptrdiff_t;

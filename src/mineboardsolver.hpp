@@ -5,9 +5,9 @@
 #include <limits>
 #include <vector>
 
-#include "boardtile.hpp"
 #include "mineboard.hpp"
 #include "mineraker.hpp"
+#include "tile.hpp"
 #include "vectorspace.hpp"
 
 namespace rake {

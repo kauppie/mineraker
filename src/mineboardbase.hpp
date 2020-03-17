@@ -7,7 +7,7 @@
 #include <stack>
 #include <vector>
 
-#include "boardtile.hpp"
+#include "tile.hpp"
 
 namespace rake {
 
