@@ -36,8 +36,8 @@ public:
         SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED,
                          SDL_WINDOWPOS_UNDEFINED, width, height, window_flags);
     if (m_window == nullptr) {
-      std::cerr << "\nWindow could not be created! SDL_Error: "
-                << SDL_GetError();
+      std::cerr << "Window could not be created! SDL_Error: "
+                << SDL_GetError() << "\n";
       state = NO_WINDOW;
     } else {
       m_title = title;
@@ -47,8 +47,8 @@ public:
       m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
 
       if (m_renderer == nullptr) {
-        std::cerr << "\nWindow renderer could not be created! SDL_Error: "
-                  << SDL_GetError();
+        std::cerr << "Window renderer could not be created! SDL_Error: "
+                  << SDL_GetError() << "\n";
         state = NO_RENDER_TARGET;
       } else
         state = OK;
