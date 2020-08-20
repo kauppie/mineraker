@@ -53,7 +53,7 @@ public:
       : m_tile_value(other.m_tile_value), m_b_flagged(other.m_b_flagged),
         m_b_open(other.m_b_open) {}
   // Can use rvalue references on bit fields.
-  constexpr Tile(this_type&& other) = delete;
+  Tile(this_type&& other) = delete;
   // @brief Move constructor. Is deleted for usage of bit field member
   // variables.
   // @brief Deconstructor.
