@@ -7,7 +7,7 @@
 
 #include "SDL2/SDL.h"
 
-#include "boardtile.hpp"
+#include "tile.hpp"
 #include "mineboard.hpp"
 #include "mineboardsolver.hpp"
 #include "mineraker.hpp"
@@ -93,14 +93,14 @@ public:
     m_board->init(m_board->width(), m_board->height(), m_board->seed(),
                   m_board->mine_count());
     m_board->open_tile(idx);
-    std::cerr << "\niterations to find solvable: " << i;
+    std::cerr << "iterations to find solvable: " << i << '\n';
   }
 
   // Renders the board to the window.
   void render() const {
     if (m_window == nullptr || m_board == nullptr ||
         m_tile_texture == nullptr) {
-      std::cerr << "\nError: Incomplete Gamemanager.";
+      std::cerr << "Error: Incomplete Gamemanager.\n";
       return;
     }
     for (size_type i = 0; i < m_board->tile_count(); ++i) {
@@ -112,7 +112,7 @@ public:
   }
 
 private:
-  SDL_Rect texture_clip_tile(const BoardTile& tile) const {
+  SDL_Rect texture_clip_tile(const Tile& tile) const {
     SDL_Rect clip;
     if (tile.is_open())
       clip = m_tiles_from_texture[tile.value()];

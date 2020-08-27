@@ -62,8 +62,8 @@ public:
 
   explicit Mineboardbase()
       : tiles_(), neighbours_pos_(), width_(0), state_(UNINITIALIZED) {}
-  Mineboardbase(const Mineboardbase& other) = default;
-  Mineboardbase(Mineboardbase&& other) = default;
+  Mineboardbase(const Mineboardbase &other) = default;
+  Mineboardbase(Mineboardbase &&other) = default;
   Mineboardbase(size_type width, size_type height)
       : tiles_(), width_(0), state_(UNINITIALIZED) {
     resize(width, height);
@@ -80,8 +80,8 @@ public:
 
   tile_type at(size_type idx) const { return tiles_[idx]; }
 
-  tile_type& at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
-  tile_type& at(size_type idx) { return tiles_[idx]; }
+  tile_type &at(pos_type pos) { return tiles_[pos_to_idx(pos)]; }
+  tile_type &at(size_type idx) { return tiles_[idx]; }
 
   /**
    * @brief Returns read-only (constant) iterator to the beginning of the vector
@@ -152,8 +152,8 @@ public:
    * %start_pos will treated as possible mine positions. If false, neighbours
    * won't be filled with mines.
    */
-  template<typename RNG>
-  void generate(size_type mines, pos_type start_pos, RNG&& rng,
+  template <typename RNG>
+  void generate(size_type mines, pos_type start_pos, RNG &&rng,
                 bool allow_mines_as_neighbours = false) {
     // Calculate the amount of indexes that won't be considered possible mine
     // indexes.
@@ -211,9 +211,9 @@ public:
    * opened, on condition that the tile is empty, all of its
    * neighbours will be opened. If the opened tile is empty and has empty
    * neighbours, all connected neighbours will too be opened.
-   * If %open_by_flagged is set true or left defaulted, 'opening' from opened
-   * tile will open all neighbours if value of the tile is equal to the number
-   * of flagged neighbours.
+   * If %open_by_flagged is set true or left to its default value, 'opening'
+   * from opened tile will open all neighbours if value of the tile is equal to
+   * the number of flagged neighbours.
    */
   void open(pos_type pos, bool open_by_flagged = true) {
     if (!at(pos).is_open()) {
@@ -247,7 +247,7 @@ public:
     return std::move(tile_neighbours(pos_to_idx(pos)));
   }
 
-  template<typename Pred>
+  template <typename Pred>
   std::vector<pos_type> tile_neighbours(pos_type pos, Pred pred) const {
     return std::move(tile_neighbours(pos_to_idx(pos), pred));
   }
@@ -256,7 +256,7 @@ public:
     return neighbours_pos_[idx];
   }
 
-  template<typename Pred>
+  template <typename Pred>
   std::vector<pos_type> tile_neighbours(size_type idx, Pred pred) const {
     std::vector<pos_type> pred_pos;
     auto neighbours = neighbours_pos_[idx];
@@ -326,7 +326,7 @@ public:
    * @param pos Position wherefrom tile is opened.
    */
   void open_single(pos_type pos) {
-    auto& tile = at(pos);
+    auto &tile = at(pos);
 
     tile.set_open();
     if (tile.is_mine())
@@ -356,7 +356,7 @@ public:
       if (at(idx).is_mine()) {
         auto neighbours = tile_neighbours(idx_to_pos(idx));
         std::for_each(neighbours.begin(), neighbours.end(),
-                      [this](const pos_type& p) { at(p).promote(); });
+                      [this](const pos_type &p) { at(p).promote(); });
       }
     }
   }
@@ -383,7 +383,7 @@ public:
     // Extract valid positions.
     std::copy_if(possible_neighbours.begin(), possible_neighbours.end(),
                  std::back_inserter(neighbours),
-                 [this](const pos_type& p) { return is_inside_bounds(p); });
+                 [this](const pos_type &p) { return is_inside_bounds(p); });
     return neighbours;
   }
 
@@ -405,7 +405,7 @@ public:
 
   pos_type::value_type width_;
   BoardState state_;
-}; // namespace rake
+};
 
 } // namespace rake
 

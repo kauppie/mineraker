@@ -4,7 +4,8 @@ cmake_minimum_required(VERSION 3.10)
 project(mineraker)
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
-set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-Wall")
+set(CMAKE_CXX_FLAGS_RELEASE_INIT "-O3 -Wall -Wextra")
 
 # Path for CMake modules.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")

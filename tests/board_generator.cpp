@@ -15,9 +15,9 @@ void test() {
   random_device rd;
   mt19937_64 gen(rd());
 
-  size_type size = 64 * 32 * 4;
+  size_type size = 30*16;
   size_type left_untouched = 9;
-  size_type mines_to_spread = 2000;
+  size_type mines_to_spread = 170;
 
   auto t1 = high_resolution_clock::now();
   {
@@ -61,13 +61,14 @@ void test() {
     }
   }
   auto t4 = high_resolution_clock::now();
-
+/*
   cout << "No if method: " << duration<double, micro>(t2 - t1).count()
        << " us\n"
        << "Many if method: " << duration<double, micro>(t3 - t2).count()
        << " us\n"
        << "Distribution method: " << duration<double, micro>(t4 - t3).count()
        << " us\n";
+       */
 }
 
 void print_board(const Mineboardbase& mb) {
@@ -233,4 +234,4 @@ void game() {
   }
 }
 
-int main() { test4(); }
+int main() { test(); }

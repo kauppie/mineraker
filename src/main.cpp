@@ -9,21 +9,22 @@
 #include "mineboardsolver.hpp"
 #include "mineraker.hpp"
 #include "texture.hpp"
+#include "tile.hpp"
 #include "vectorspace.hpp"
 #include "windowmanager.hpp"
 
-int main(int argc, char* argv[]) {
+int main() {
 
   if (!rake::init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER |
                       SDL_INIT_VIDEO,
                   IMG_INIT_PNG)) {
     std::cerr
-        << "\nInitialization error; can't continue... Press any key to exit. ";
+        << "Initialization error; can't continue... Press RETURN to exit.\n";
     std::cin.get();
     return 1;
   }
   // Register program-wide quit to be called on exit as SDL and IMG
-  // initializations have been called.
+  // initializations have been succesfully called.
   atexit(rake::quit);
 
   bool quit = false;
@@ -58,10 +59,10 @@ int main(int argc, char* argv[]) {
         m_button = SDL_GetMouseState(&mx, &my);
         if (m_button & SDL_BUTTON(SDL_BUTTON_LEFT)) {
           gm.open_from(mx, my);
-          std::cerr << "\nopen button";
+          std::cerr << "open button\n";
         } else if (m_button & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
           gm.flag_from(mx, my);
-          std::cerr << "\nflag button";
+          std::cerr << "flag button\n";
         }
       } else if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_SPACE)
@@ -70,10 +71,10 @@ int main(int argc, char* argv[]) {
       wm.handle_event(&event);
 
       if (mb.state() == rake::MineBoard::State::GAME_WIN) {
-        std::cerr << "\nGame WIN";
+        std::cerr << "Game WIN\n";
         mb.init(30, 16, time(0), 99);
       } else if (mb.state() == rake::MineBoard::State::GAME_LOSE) {
-        std::cerr << "\nGame LOSE";
+        std::cerr << "Game LOSE\n";
         mb.init(30, 16, time(0), 99);
       }
     }
@@ -88,5 +89,5 @@ int main(int argc, char* argv[]) {
     gm.render();
     SDL_RenderPresent(wm);
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
