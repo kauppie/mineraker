@@ -51,7 +51,7 @@ struct Position_t {
 };
 
 class Mineboardbase {
- public:
+public:
   using size_type = std::size_t;
   using diff_type = std::ptrdiff_t;
 
@@ -391,9 +391,11 @@ class Mineboardbase {
     const bool vertical_edge = pos.x == 0 || pos.x == width_ - 1;
     const bool horizontal_edge = pos.y == 0 || pos.y == height() - 1;
     // If is against both vertically and horizontally going walls.
-    if (vertical_edge && horizontal_edge) return 3;
+    if (vertical_edge && horizontal_edge)
+      return 3;
     // If is against either vertically or horizontally going wall.
-    if (vertical_edge || horizontal_edge) return 5;
+    if (vertical_edge || horizontal_edge)
+      return 5;
     // If isn't against any walls.
     return MAX_NEIGHBOUR_COUNT;
   }
@@ -405,6 +407,6 @@ class Mineboardbase {
   BoardState state_;
 };
 
-}  // namespace rake
+} // namespace rake
 
 #endif

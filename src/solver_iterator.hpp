@@ -10,7 +10,7 @@
 namespace rake {
 
 class SolverIterator {
- public:
+public:
   using size_type = std::size_t;
   using diff_type = std::ptrdiff_t;
 
@@ -33,6 +33,7 @@ class SolverIterator {
     for (auto tile_it = board_ptr->begin(); tile_it != board_ptr->end();
          ++tile_it) {
       if (tile_it->is_open() && tile_it->is_number()) {
+
         auto all_neighbours = board_ptr->tile_neighbours(
             std::distance(board_ptr->begin(), tile_it));
 
@@ -50,6 +51,7 @@ class SolverIterator {
             auto& neigbour = board_ptr->at(*neigh_pos_it);
 
             if (neigbour.is_open() && neigbour.is_number()) {
+
               auto tile_flag_value =
                   tile_it->value() -
                   std::count_if(all_neighbours.begin(), all_neighbours.end(),
@@ -99,6 +101,7 @@ class SolverIterator {
     for (auto tile_it = board_ptr->begin(); tile_it != board_ptr->end();
          ++tile_it) {
       if (tile_it->is_open() && tile_it->is_number()) {
+
         auto not_fl_op_neighbours = not_flagged_opened_neighbours(
             std::distance(board_ptr->begin(), tile_it));
         auto all_neighbours = board_ptr->tile_neighbours(
@@ -122,8 +125,10 @@ class SolverIterator {
         } else {
           for (auto neigh_pos_it = all_neighbours.begin();
                neigh_pos_it != all_neighbours.end(); ++neigh_pos_it) {
+
             if (board_ptr->at(*neigh_pos_it).is_open() &&
                 board_ptr->at(*neigh_pos_it).is_number()) {
+
               auto neigh_not_fl_op_neighbours =
                   not_flagged_opened_neighbours(*neigh_pos_it);
               auto all_neigh_neighbours =
@@ -142,6 +147,7 @@ class SolverIterator {
                                 not_fl_op_neighbours.end(),
                                 neigh_not_fl_op_neighbours.begin(),
                                 neigh_not_fl_op_neighbours.end())) {
+
                 std::set_difference(not_fl_op_neighbours.begin(),
                                     not_fl_op_neighbours.end(),
                                     neigh_not_fl_op_neighbours.begin(),
@@ -161,7 +167,8 @@ class SolverIterator {
   }
 
   bool open_and_flag() {
-    if (next_flag.size() == 0 && next_open.size() == 0) return false;
+    if (next_flag.size() == 0 && next_open.size() == 0)
+      return false;
 
     for (auto pos : next_flag) {
       board_ptr->at(pos).set_flagged();
@@ -173,7 +180,7 @@ class SolverIterator {
     return true;
   }
 
- private:
+private:
   void clear() noexcept {
     next_open.clear();
     next_flag.clear();
@@ -197,6 +204,6 @@ class SolverIterator {
   std::shared_ptr<Mineboardbase> board_ptr;
 };
 
-}  // namespace rake
+} // namespace rake
 
 #endif
