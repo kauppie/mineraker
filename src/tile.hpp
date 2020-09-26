@@ -85,7 +85,7 @@ public:
    * @post Value of *this is equal to given parameter.
    * @exception No-throw guarantee.
    */
-  constexpr void value(value_type new_value) noexcept {
+  constexpr void set_value(value_type new_value) noexcept {
     m_tile_value = new_value;
   }
 
