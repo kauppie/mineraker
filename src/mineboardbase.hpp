@@ -170,7 +170,6 @@ public:
 
     // Spread mines on the board.
     for (size_type mines_spread = 0; mines_spread < mines_to_spread;) {
-      // Generate new mine index.
       auto idx = dis(rng);
 
       if (!at(idx).is_mine()) {

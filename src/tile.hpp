@@ -1,12 +1,12 @@
-#ifndef BOARDTILE_HPP
-#define BOARDTILE_HPP
+#ifndef TILE_HPP
+#define TILE_HPP
 
 #include <cstdint>
 
 namespace rake {
 /**
- * Contains data of single tile placed on a board. Such information is: is the
- * tile open, is flag set on it and it's holding value which is either empty
+ * Contains data of a single tile placed on a board. Such information is: is the
+ * tile open, is flag set on it and its holding value which is either empty
  * represented by 0, number between 1-8 or mine represented by 9.
  */
 class Tile {
@@ -49,17 +49,25 @@ public:
       : m_tile_value(m_tile_value), m_b_flagged(is_flagged), m_b_open(is_open) {
   }
   // @brief Copy constructor.
-  constexpr Tile(const this_type& other)
+  constexpr Tile(const this_type &other)
       : m_tile_value(other.m_tile_value), m_b_flagged(other.m_b_flagged),
         m_b_open(other.m_b_open) {}
-  // Can use rvalue references on bit fields.
-  Tile(this_type&& other) = delete;
+  // Can't use rvalue references on bit fields.
+  Tile(this_type &&other) = delete;
   // @brief Move constructor. Is deleted for usage of bit field member
   // variables.
   // @brief Deconstructor.
   ~Tile() noexcept {}
 
-  constexpr this_type& operator=(const this_type& other) {
+  /**
+   * @brief Copies data from %other to *this.
+   * @param other const reference to other Tile. Source of data to copy.
+   * @return Reference to *this.
+   * @pre -
+   * @post *this is an exact copy of %other.
+   * @exception No-throw guarantee.
+   */
+  constexpr this_type &operator=(const this_type &other) noexcept {
     m_tile_value = other.m_tile_value;
     m_b_flagged = other.m_b_flagged;
     m_b_open = other.m_b_open;
@@ -67,36 +75,104 @@ public:
     return *this;
   }
 
-  constexpr this_type& operator=(this_type&& other) = delete;
+  /// @brief Deleted method.
+  constexpr this_type &operator=(this_type &&other) = delete;
 
-  // @brief Sets %m_tile_value to %new_value and returns %m_tile_value before
-  // setting.
-  auto value(value_type new_value) noexcept {
-    auto tmp = m_tile_value;
+  /**
+   * @brief Sets value to parameter %new_value.
+   * @param new_value New value to be assigned to.
+   * @pre -
+   * @post Value of *this is equal to given parameter.
+   * @exception No-throw guarantee.
+   */
+  constexpr void value(value_type new_value) noexcept {
     m_tile_value = new_value;
-    return tmp;
   }
-  // @brief Returns %m_tile_value.
+
+  /**
+   * @brief Returns value of the tile.
+   * @return Value of *this.
+   * @pre Return value is undefined if value is yet to be assigned.
+   * @post -
+   * @exception No-throw guarantee.
+   */
   constexpr auto value() const noexcept { return m_tile_value; }
-  // @brief Returns true when tile is flagged. False otherwise.
+
+  /**
+   * @brief Returns true if the Tile is flagged, false otherwise.
+   * @return Flag state of the Tile. True if flagged, false if not.
+   * @pre Return value is undefined if flagged state is yet to be assigned.
+   * @post -
+   * @exception No-throw guarantee.
+   */
   constexpr auto is_flagged() const noexcept { return m_b_flagged; }
-  // @brief Returns true when tile is open. False otherwise.
+
+  /**
+   * @brief Return true if the Tile is open, false otherwise.
+   * @return Open state of the Tile. True if open, false if closed.
+   * @pre Return value is undefined if open state is yet to be assigned.
+   * @post -
+   * @exception No-throw guarantee.
+   */
   constexpr auto is_open() const noexcept { return m_b_open; }
-  // @brief Returns true when tile is a mine. False otherwise.
+
+  /**
+   * @brief Returns true if tile is a mine.
+   * @return True if Tile is mine, false if not.
+   * @pre Return value is undefined if value is yet to be assigned.
+   * @post -
+   * @exception No-throw guarantee.
+   */
   constexpr bool is_mine() const noexcept { return m_tile_value == TILE_MINE; }
-  // @brief Returns true when tile is empty. False otherwise.
+
+  /**
+   * @brief Returns true if tile has a value of empty.
+   * @return True if empty, false otherwise.
+   * @pre Return value is undefined if value is yet to be assigned.
+   * @post -
+   * @exception No-throw guarantee.
+   */
   constexpr bool is_empty() const noexcept {
     return m_tile_value == TILE_EMPTY;
   }
-  // @brief Returns true when tile is neither empty or a mine. False otherwise.
+
+  /**
+   * @brief Returns true if value is a number, e.g. not empty nor mine.
+   * @return True if is number, false otherwise.
+   * @pre Return value is undefined if value is yet to be assigned.
+   * @post -
+   * @exception No-throw guarantee.
+   */
   constexpr bool is_number() const noexcept {
-    return !(is_mine() || is_empty());
+    return TILE_EMPTY < m_tile_value && m_tile_value < TILE_MINE;
   }
-  // @brief Sets tile to a mine.
+
+  /**
+   * @brief Set value to mine.
+   * @return void
+   * @pre -
+   * @post Tile's value is equal to TILE_MINE.
+   * @exception No-throw guarantee.
+   */
   constexpr void set_mine() noexcept { m_tile_value = TILE_MINE; }
-  // @brief Sets tile to empty tile.
+
+  /**
+   * @brief Set value to empty.
+   * @return void
+   * @pre -
+   * @post Tile's value is equal to TILE_EMPTY.
+   * @exception No-throw guarantee.
+   */
   constexpr void set_empty() noexcept { m_tile_value = TILE_EMPTY; }
-  // @brief Opens tile if tile is not flagged.
+
+  /**
+   * @brief Set open if Tile isn't flagged.
+   * @return void
+   * @pre Behaviour is undefined if flag state is yet to be assigned a value.
+   * @post Tile is open if it isn't flagged. Tile stays unmodified if Tile is
+   * flagged.
+   * @exception No-throw guarantee.
+   */
   constexpr void set_open() noexcept {
     if (!m_b_flagged)
       m_b_open = true;
