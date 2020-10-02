@@ -6,13 +6,12 @@
 #include <memory>
 
 #include "SDL2/SDL.h"
-
-#include "tile.hpp"
 #include "mineboard.hpp"
 #include "mineboardsolver.hpp"
 #include "mineraker.hpp"
 #include "text.hpp"
 #include "texture.hpp"
+#include "tile.hpp"
 #include "windowmanager.hpp"
 
 namespace rake {
@@ -22,7 +21,7 @@ namespace rake {
  * and clipping.
  */
 class GameManager {
-public:
+ public:
   explicit GameManager()
       : m_window(nullptr), m_board(nullptr), m_tile_texture(nullptr) {}
   explicit GameManager(WindowManager* windowmanager, MineBoard* mineboard,
@@ -60,8 +59,7 @@ public:
     size_type idx = m_mouse_to_index(mouse_x, mouse_y);
     bool was_first = m_board->state() == rake::MineBoard::State::FIRST_MOVE;
     m_board->open_tile(idx);
-    if (was_first)
-      find_solvable_game(idx);
+    if (was_first) find_solvable_game(idx);
   }
 
   // Flags specified tile from mouse coordinates.
@@ -86,8 +84,7 @@ public:
       m_board->init(m_board->width(), m_board->height(), seed,
                     m_board->mine_count());
       m_board->open_tile(idx);
-      if (mbs.b_solve())
-        mbs.open_by_flagged();
+      if (mbs.b_solve()) mbs.open_by_flagged();
       ++i;
     }
     m_board->init(m_board->width(), m_board->height(), m_board->seed(),
@@ -111,7 +108,7 @@ public:
     }
   }
 
-private:
+ private:
   SDL_Rect texture_clip_tile(const Tile& tile) const {
     SDL_Rect clip;
     if (tile.is_open())
@@ -164,6 +161,6 @@ private:
       m_tiles_from_texture;
 };
 
-} // namespace rake
+}  // namespace rake
 
 #endif

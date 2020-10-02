@@ -1,17 +1,17 @@
 #ifndef MINERAKER_HPP
 #define MINERAKER_HPP
 
-#include <cstddef> // std::size_t, std::ptrdiff_t
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+
+#include <cstddef>  // std::size_t, std::ptrdiff_t
 #include <exception>
 #include <functional>
 #include <iostream>
 #include <mutex>
 #include <string>
 #include <unordered_map>
-
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
 
 namespace rake {
 using size_type = std::size_t;
@@ -44,6 +44,6 @@ static constexpr int SCREEN_WIDTH = 640, SCREEN_HEIGHT = 480;
 // Tile input texture dimensions used for clipping individual textures.
 static constexpr int TEXTURE_WIDTH_COUNT = 4, TEXTURE_HEIGHT_COUNT = 3;
 
-} // namespace rake
+}  // namespace rake
 
 #endif

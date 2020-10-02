@@ -1,12 +1,12 @@
 #ifndef TEXTURE_HPP
 #define TEXTURE_HPP
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
-
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 #include "mineraker.hpp"
 
@@ -15,7 +15,7 @@ namespace rake {
 class Texture {
   using this_type = Texture;
 
-public:
+ public:
   Texture(const this_type&) = delete;
   Texture(this_type&&) = delete;
 
@@ -111,8 +111,7 @@ public:
   // Renders the texture.
   void render(SDL_Renderer* renderer, SDL_Rect* src, SDL_Rect* dst) {
     if (m_texture == nullptr) {
-      if (m_surface == nullptr)
-        return;
+      if (m_surface == nullptr) return;
       texture_from_surface(renderer);
     }
     SDL_RenderCopy(renderer, m_texture, src, dst);
@@ -135,7 +134,7 @@ public:
     return (m_texture == nullptr) && (m_surface == nullptr);
   }
 
-private:
+ private:
   // Frees texture used memory on the GPU.
   void m_free_texture() noexcept {
     if (m_texture != nullptr) {
@@ -157,6 +156,6 @@ private:
   int m_width, m_height;
 };
 
-} // namespace rake
+}  // namespace rake
 
 #endif

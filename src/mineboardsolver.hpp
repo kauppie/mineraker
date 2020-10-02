@@ -17,7 +17,7 @@ namespace rake {
  * inside the MineBoard.
  */
 class MineBoardSolver {
-private:
+ private:
   using this_type = MineBoardSolver;
 
   MineBoard& m_board;
@@ -28,7 +28,7 @@ private:
 
   VectorSpace<size_type> m_vecspace;
 
-public:
+ public:
   MineBoardSolver(MineBoard& board) : m_board(board) {
     m_vecspace.space_size(8);
     m_vecspace.vectors_reserve(8);
@@ -40,8 +40,7 @@ public:
   ~MineBoardSolver() noexcept {}
 
   void reset() {
-    for (auto checked : m_checked_number_tiles)
-      checked = false;
+    for (auto checked : m_checked_number_tiles) checked = false;
   }
   bool is_not_flagged_open(size_type idx) const {
     return !(m_board.tiles_[idx].is_open() || m_board.tiles_[idx].is_flagged());
@@ -56,8 +55,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (m_board.tiles_[i].is_flagged())
-        ++count;
+      if (m_board.tiles_[i].is_flagged()) ++count;
     return count;
   }
 
@@ -66,8 +64,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (!m_board.tiles_[i].is_flagged())
-        ++count;
+      if (!m_board.tiles_[i].is_flagged()) ++count;
     return count;
   }
 
@@ -76,8 +73,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (m_board.tiles_[i].is_open())
-        ++count;
+      if (m_board.tiles_[i].is_open()) ++count;
     return count;
   }
 
@@ -86,8 +82,7 @@ public:
     auto neighbrs = m_vecspace.acquire();
     m_board.m_tile_neighbours_bnds(*neighbrs.get(), idx);
     for (auto i : *neighbrs.get())
-      if (!m_board.tiles_[i].is_open())
-        ++count;
+      if (!m_board.tiles_[i].is_open()) ++count;
     return count;
   }
 
@@ -180,8 +175,7 @@ public:
         auto nobrs = m_vecspace.acquire();
         // Finds not opened neighbours of current tile.
         for (auto& i : *neighbrs.get())
-          if (!tiles[i].is_open())
-            nobrs->emplace_back(i);
+          if (!tiles[i].is_open()) nobrs->emplace_back(i);
         // If tile's value equals the number of unopened neighbours, those
         // neighbours must be mines. If neighbour is unflagged, it will be
         // flagged.
@@ -338,8 +332,7 @@ public:
     std::fill_n(flag_bits.rbegin(),
                 m_board.mine_count() - m_board.flagged_tiles_count(), true);
 
-    if (not_opened.size() > 20)
-      return false;
+    if (not_opened.size() > 20) return false;
 
     std::vector<bool> permu_copy;
     size_type ok_count = 0;
@@ -387,6 +380,6 @@ public:
   }
 };
 
-} // namespace rake
+}  // namespace rake
 
 #endif

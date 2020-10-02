@@ -11,7 +11,7 @@
 namespace rake {
 
 class MineBoardFormat {
-public:
+ public:
   MineBoardFormat() {}
   ~MineBoardFormat() {}
 
@@ -23,6 +23,6 @@ public:
   // static MineBoard parse(std::string_view view) { return MineBoard{}; }
 };
 
-} // namespace rake
+}  // namespace rake
 
 #endif

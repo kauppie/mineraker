@@ -9,11 +9,12 @@
 
 namespace rake {
 
-template<typename T> class VectorSpace {
+template <typename T>
+class VectorSpace {
   using vec_type = std::vector<T>;
   using pointer_type = std::shared_ptr<vec_type>;
 
-public:
+ public:
   explicit VectorSpace() : m_vec_list(), m_reserve_size(0) {}
   VectorSpace(size_type start_size, size_type reserve_size)
       : m_reserve_size(reserve_size) {
@@ -23,8 +24,7 @@ public:
 
   void vectors_reserve(size_type reserve) {
     for (auto& vec_p : m_vec_list)
-      if (vec_p)
-        vec_p->reserve(reserve);
+      if (vec_p) vec_p->reserve(reserve);
     m_reserve_size = reserve;
   }
 
@@ -32,10 +32,8 @@ public:
 
   void space_size(size_type vec_num) {
     m_vec_list.resize(vec_num);
-    for (auto& vec_p : m_vec_list)
-      vec_p = std::make_shared<vec_type>();
-    if (m_reserve_size > 0)
-      vectors_reserve(m_reserve_size);
+    for (auto& vec_p : m_vec_list) vec_p = std::make_shared<vec_type>();
+    if (m_reserve_size > 0) vectors_reserve(m_reserve_size);
   }
 
   auto space_size() const { return m_vec_list.size(); }
@@ -52,10 +50,10 @@ public:
     return back;
   }
 
-private:
+ private:
   std::vector<pointer_type> m_vec_list;
   size_type m_reserve_size;
 };
-} // namespace rake
+}  // namespace rake
 
 #endif

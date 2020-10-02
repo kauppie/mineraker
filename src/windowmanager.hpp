@@ -4,25 +4,32 @@
 #include <string>
 
 #include "SDL2/SDL.h"
-
 #include "mineraker.hpp"
 
 namespace rake {
 
 class WindowManager {
-public:
+ public:
   enum State { OK, NO_WINDOW, NO_RENDER_TARGET } state;
   // Initializing constructor.
   explicit WindowManager(int width, int height, const std::string& title,
                          uint32_t window_flags)
-      : m_window(nullptr), m_renderer(nullptr), m_width(0), m_height(0),
-        m_window_id(0), m_b_fullscreen(false) {
+      : m_window(nullptr),
+        m_renderer(nullptr),
+        m_width(0),
+        m_height(0),
+        m_window_id(0),
+        m_b_fullscreen(false) {
     init(width, height, title, window_flags);
   }
 
   explicit WindowManager()
-      : m_window(nullptr), m_renderer(nullptr), m_width(0), m_height(0),
-        m_window_id(0), m_b_fullscreen(false) {}
+      : m_window(nullptr),
+        m_renderer(nullptr),
+        m_width(0),
+        m_height(0),
+        m_window_id(0),
+        m_b_fullscreen(false) {}
 
   ~WindowManager() { free(); }
 
@@ -36,8 +43,8 @@ public:
         SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_UNDEFINED,
                          SDL_WINDOWPOS_UNDEFINED, width, height, window_flags);
     if (m_window == nullptr) {
-      std::cerr << "Window could not be created! SDL_Error: "
-                << SDL_GetError() << "\n";
+      std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
+                << "\n";
       state = NO_WINDOW;
     } else {
       m_title = title;
@@ -81,14 +88,14 @@ public:
     if (event->type == SDL_WINDOWEVENT &&
         event->window.windowID == m_window_id) {
       switch (event->window.event) {
-      case SDL_WINDOWEVENT_SIZE_CHANGED:
-        SDL_GetWindowSize(m_window, &m_width, &m_height);
-        break;
-      case SDL_WINDOWEVENT_CLOSE:
-        free();
-        break;
-      default:
-        break;
+        case SDL_WINDOWEVENT_SIZE_CHANGED:
+          SDL_GetWindowSize(m_window, &m_width, &m_height);
+          break;
+        case SDL_WINDOWEVENT_CLOSE:
+          free();
+          break;
+        default:
+          break;
       }
     }
   }
@@ -142,7 +149,7 @@ public:
   // Reset window size to previous.
   void reset_size() { SDL_RestoreWindow(m_window); }
 
-private:
+ private:
   SDL_Window* m_window;
   SDL_Renderer* m_renderer;
   std::string m_title;
@@ -150,8 +157,8 @@ private:
   uint32_t m_window_id;
   bool m_b_fullscreen;
 
-}; // namespace rake
+};  // namespace rake
 
-} // namespace rake
+}  // namespace rake
 
 #endif

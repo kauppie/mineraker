@@ -11,19 +11,19 @@ namespace rake {
 // @brief Class designed to learn to play minesweeper with various settings and
 // difficulty.
 class NeuralRaker {
-public:
-private:
+ public:
+ private:
   std::vector<float> m_input_layer;
   std::vector<std::vector<float>> m_hidden_layers;
   std::vector<float> m_output_layer;
 
   std::mt19937_64 m_rand_gen;
 
-public:
+ public:
   NeuralRaker() {}
   ~NeuralRaker() {}
 
-private:
+ private:
   static constexpr float m_sigmoid(float value) {
     return 1.0f / (1.0f + std::exp(value));
   }
@@ -34,6 +34,6 @@ private:
 
   void m_train(size_type iterations) {}
 };
-} // namespace rake
+}  // namespace rake
 
 #endif

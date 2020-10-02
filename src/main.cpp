@@ -1,8 +1,8 @@
+#include <SDL2/SDL.h>
+
 #include <chrono>
 #include <iostream>
 #include <thread>
-
-#include <SDL2/SDL.h>
 
 #include "gamemanager.hpp"
 #include "mineboard.hpp"
@@ -14,10 +14,9 @@
 #include "windowmanager.hpp"
 
 int main() {
-
-  if (!rake::init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER |
-                      SDL_INIT_VIDEO,
-                  IMG_INIT_PNG)) {
+  if (!rake::init(
+          SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_VIDEO,
+          IMG_INIT_PNG)) {
     std::cerr
         << "Initialization error; can't continue... Press RETURN to exit.\n";
     std::cin.get();
@@ -65,8 +64,7 @@ int main() {
           std::cerr << "flag button\n";
         }
       } else if (event.type == SDL_KEYDOWN) {
-        if (event.key.keysym.sym == SDLK_SPACE)
-          gm.open_by_flagged();
+        if (event.key.keysym.sym == SDLK_SPACE) gm.open_by_flagged();
       }
       wm.handle_event(&event);
 

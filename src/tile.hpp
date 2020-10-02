@@ -10,11 +10,11 @@ namespace rake {
  * represented by 0, number between 1-8 or mine represented by 9.
  */
 class Tile {
-public:
+ public:
   using this_type = Tile;
   using value_type = uint8_t;
 
-private:
+ private:
   // Defines tile's board value. Ranges from 0 to 9. Number 9 represents a mine.
   value_type m_tile_value : 6;
   // Defines if board tile is flagged.
@@ -22,7 +22,7 @@ private:
   // Defines if board tile is opened.
   bool m_b_open : 1;
 
-public:
+ public:
   enum {
     TILE_EMPTY = 0,
     TILE_1 = 1,
@@ -46,11 +46,13 @@ public:
   // @brief Constructor that takes all tile defining values as parameters and
   // constructs variables from them.
   constexpr Tile(value_type m_tile_value, bool is_flagged, bool is_open)
-      : m_tile_value(m_tile_value), m_b_flagged(is_flagged), m_b_open(is_open) {
-  }
+      : m_tile_value(m_tile_value),
+        m_b_flagged(is_flagged),
+        m_b_open(is_open) {}
   // @brief Copy constructor.
   constexpr Tile(const this_type &other)
-      : m_tile_value(other.m_tile_value), m_b_flagged(other.m_b_flagged),
+      : m_tile_value(other.m_tile_value),
+        m_b_flagged(other.m_b_flagged),
         m_b_open(other.m_b_open) {}
   // Can't use rvalue references on bit fields.
   Tile(this_type &&other) = delete;
@@ -174,8 +176,7 @@ public:
    * @exception No-throw guarantee.
    */
   constexpr void set_open() noexcept {
-    if (!m_b_flagged)
-      m_b_open = true;
+    if (!m_b_flagged) m_b_open = true;
   }
   // @brief Opens tile. Tile is set open whether or not tile is flagged.
   // Implemented for effiency purposes.
@@ -184,8 +185,7 @@ public:
   constexpr void set_closed() noexcept { m_b_open = false; }
   // @brief Sets tile flagged if tile is not open.
   constexpr void set_flagged() noexcept {
-    if (!m_b_open)
-      m_b_flagged = true;
+    if (!m_b_open) m_b_flagged = true;
   }
   // @brief Sets tile flagged. Tile is set flagged whether or not tile is
   // open. Implemented for effiency purposes.
@@ -205,8 +205,7 @@ public:
   // @brief Promotes tile to a higher value. Used when determining values for
   // non-mine positions on the board. Doesn't promote tiles valued 8 or mines.
   constexpr void promote() noexcept {
-    if (m_tile_value < TILE_8)
-      ++m_tile_value;
+    if (m_tile_value < TILE_8) ++m_tile_value;
   }
 
   // @brief Clears %BoardTile to have value of closed, unflagged and empty tile.
@@ -223,6 +222,6 @@ public:
   }
 };
 
-} // namespace rake
+}  // namespace rake
 
 #endif

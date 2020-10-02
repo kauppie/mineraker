@@ -1,12 +1,12 @@
 #ifndef TEXT_HPP
 #define TEXT_HPP
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+
 #include <exception>
 #include <iostream>
 #include <string>
-
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 
 #include "mineraker.hpp"
 #include "renderable.hpp"
@@ -18,7 +18,7 @@ namespace rake {
  * Wrapper class for fonts and text rendering.
  */
 class Text {
-public:
+ public:
   // @brief Default constructor.
   Text() : m_font(nullptr) {}
 
@@ -77,12 +77,12 @@ public:
     }
   }
 
-private:
+ private:
   TTF_Font* m_font;
   rake::Texture m_texture_text;
   std::string m_text;
   SDL_Color m_color;
 };
-} // namespace rake
+}  // namespace rake
 
 #endif

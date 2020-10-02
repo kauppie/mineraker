@@ -8,6 +8,6 @@ namespace rake {
 
 class Solver {};
 
-} // namespace rake
+}  // namespace rake
 
 #endif

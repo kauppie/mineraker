@@ -10,7 +10,7 @@ namespace rake {
  * Whether this helper class is even usefull is to be realised.
  */
 class Renderable {
-public:
+ public:
   explicit Renderable() : m_texture(nullptr) {}
   ~Renderable() noexcept { free_texture(); }
 
@@ -26,16 +26,15 @@ public:
   }
 
   void free_texture() const noexcept {
-    if (m_texture != nullptr)
-      SDL_DestroyTexture(m_texture);
+    if (m_texture != nullptr) SDL_DestroyTexture(m_texture);
   }
 
   virtual void render() = 0;
 
-protected:
+ protected:
   SDL_Texture* m_texture;
 };
 
-} // namespace rake
+}  // namespace rake
 
 #endif
